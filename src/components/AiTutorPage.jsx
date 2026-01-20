@@ -359,16 +359,19 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, onOpenSettings }) => {
                     <div className="relative">
                         <img src={logo} alt="Jarvis Cali" className="relative w-9 h-9 object-contain hover:scale-105 transition-transform" />
                     </div>
-                    <div className="flex flex-col items-start">
-                        <span className="font-black tracking-tighter text-[11px] leading-none text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400">JARVIS AI</span>
-                        <span className="font-mono text-[7px] tracking-widest text-gray-400 font-bold">SIMPLE MODE</span>
+                    <div className="flex flex-col justify-center h-full">
+                        <span className={`font-bold text-lg tracking-tight ${isDarkMode ? 'text-white' : 'text-black'}`}>Jarvis Math</span>
                     </div>
                 </button>
-                <div className="p-2 rounded-full bg-[#1E1E1E]">
-                    <button onClick={onOpenSettings} className="flex items-center justify-center w-full h-full">
-                        <Settings size={18} className="text-white" />
-                    </button>
-                </div>
+                <button
+                    onClick={onOpenSettings}
+                    className={`p-3 rounded-full transition-all duration-500 active:rotate-180 ${isDarkMode
+                        ? 'bg-neutral-800 text-white hover:bg-neutral-700'
+                        : 'bg-white text-black hover:bg-neutral-100 shadow-sm border border-neutral-200'
+                        }`}
+                >
+                    <Settings size={20} className="opacity-80" />
+                </button>
 
             </div>
 

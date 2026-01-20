@@ -356,9 +356,8 @@ const SimpleCalculatorPage = ({ onSwitch, isDarkMode, onOpenSettings }) => {
                     <div className="relative">
                         <img src={logo} alt="Jarvis Cali" className="relative w-9 h-9 object-contain hover:scale-105 transition-transform" />
                     </div>
-                    <div className="flex flex-col">
-                        <span className="font-black tracking-tighter text-sm leading-none text-transparent bg-clip-text bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500">JARVIS AI</span>
-                        <span className={`font-mono text-[9px] tracking-[0.15em] font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>INTELLIGENT CALC</span>
+                    <div className="flex flex-col justify-center h-full">
+                        <span className={`font-bold text-lg tracking-tight ${isDarkMode ? 'text-white' : 'text-black'}`}>Simple Calculator</span>
                     </div>
                 </button>
 
