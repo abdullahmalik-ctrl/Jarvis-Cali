@@ -1,9 +1,8 @@
-const CACHE_NAME = 'jarvis-math-v1';
+const CACHE_NAME = 'jarvis-math-v2';
 const urlsToCache = [
     '/Jarvis-Cali/',
     '/Jarvis-Cali/index.html',
     '/Jarvis-Cali/logo.svg',
-
     '/Jarvis-Cali/manifest.json'
 ];
 
