@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Camera, PenTool, Calculator, ChevronLeft, ChevronRight, Sparkles, Sun, Moon, Delete, Trash2, Loader2, X, Eraser, Keyboard, Settings } from 'lucide-react';
-import logo from '../assets/logo.png';
+import logo from '../assets/logo.svg';
 
 import { MATHTYPE_DATA, MODEL_NAME } from '../utils/constants';
 import { useKatex, MathLabel, LiveMathPreview, MarkdownRenderer } from './MathRenderers';
@@ -354,15 +354,14 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, onOpenSettings }) => {
         <div className={`w-full h-full flex flex-col relative transition-colors duration-500 ${isDarkMode ? 'bg-black text-white' : 'bg-[#f2f2f2] text-black'}`}>
 
             {/* 1. Header Row */}
-            <div className="h-14 flex items-center justify-between px-4 shrink-0 z-30">
+            <div className="h-16 flex items-center justify-between px-6 shrink-0 z-30">
                 <button onClick={onBack} className="flex items-center gap-3 hover:opacity-70 active:scale-95 transition-all group">
                     <div className="relative">
-                        <div className="absolute -inset-1 bg-cyan-500 rounded-full blur opacity-10 group-hover:opacity-30 transition-opacity"></div>
-                        <img src={logo} alt="Jarvis Cali" className="relative w-7 h-7 rounded-full border border-cyan-400/30 object-cover" />
+                        <img src={logo} alt="Jarvis Cali" className="relative w-9 h-9 object-contain hover:scale-105 transition-transform" />
                     </div>
                     <div className="flex flex-col items-start">
-                        <span className={`font-black tracking-tighter text-[11px] leading-none ${isDarkMode ? 'text-white' : 'text-black'}`}>JARVIS CALI</span>
-                        <span className="font-mono text-[7px] tracking-widest text-cyan-500 font-bold">SIMPLE MODE</span>
+                        <span className="font-black tracking-tighter text-[11px] leading-none text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400">JARVIS AI</span>
+                        <span className="font-mono text-[7px] tracking-widest text-gray-400 font-bold">SIMPLE MODE</span>
                     </div>
                 </button>
                 <div className="p-2 rounded-full bg-[#1E1E1E]">

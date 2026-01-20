@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, Sparkles, Sun, Moon, History, Ruler, CalendarClock, Delete, FlaskConical, Settings } from 'lucide-react';
-import logo from '../assets/logo.png';
+import logo from '../assets/logo.svg';
 
 import UnitConverter from './UnitConverter';
 import DateCalculator from './DateCalculator';
@@ -354,12 +354,11 @@ const SimpleCalculatorPage = ({ onSwitch, isDarkMode, onOpenSettings }) => {
             <div className="h-16 flex items-center justify-between px-6 shrink-0 absolute top-0 left-0 right-0 z-20">
                 <button onClick={onSwitch} className="flex items-center gap-3 hover:opacity-70 active:scale-95 transition-all">
                     <div className="relative">
-                        <div className="absolute -inset-1 bg-cyan-500 rounded-full blur opacity-25 animate-pulse"></div>
-                        <img src={logo} alt="Jarvis Cali" className="relative w-8 h-8 rounded-full border border-cyan-400/50 shadow-[0_0_15px_rgba(34,211,238,0.4)] object-cover" />
+                        <img src={logo} alt="Jarvis Cali" className="relative w-9 h-9 object-contain hover:scale-105 transition-transform" />
                     </div>
                     <div className="flex flex-col">
-                        <span className={`font-black tracking-tighter text-sm leading-none ${isDarkMode ? 'text-white' : 'text-black'}`}>JARVIS CALI</span>
-                        <span className={`font-mono text-[8px] tracking-[0.2em] font-bold ${isDarkMode ? 'text-cyan-400' : 'text-cyan-600'}`}>ADVANCED AI</span>
+                        <span className="font-black tracking-tighter text-sm leading-none text-transparent bg-clip-text bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500">JARVIS AI</span>
+                        <span className={`font-mono text-[9px] tracking-[0.15em] font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>INTELLIGENT CALC</span>
                     </div>
                 </button>
 

@@ -1,0 +1,54 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="aiGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3B82F6" /> <!-- Blue -->
+      <stop offset="50%" stop-color="#8B5CF6" /> <!-- Purple -->
+      <stop offset="100%" stop-color="#EC4899" /> <!-- Pink -->
+    </linearGradient>
+    <linearGradient id="glassGradient" x1="0" y1="0" x2="0" y2="1">
+       <stop offset="0%" stop-color="white" stop-opacity="0.4"/>
+       <stop offset="100%" stop-color="white" stop-opacity="0.1"/>
+    </linearGradient>
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="10" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background Glow -->
+  <circle cx="256" cy="256" r="230" fill="url(#aiGradient)" opacity="0.2" filter="url(#softGlow)" />
+  
+  <!-- Calculator Screen / AI Eye -->
+  <rect x="136" y="130" width="240" height="80" rx="20" fill="rgba(255,255,255,0.9)" />
+  
+  <!-- AI Neural Nodes (Replacing buttons) -->
+  <g fill="url(#aiGradient)" fill-opacity="1">
+    <!-- Top Row -->
+    <circle cx="166" cy="260" r="25" />
+    <circle cx="256" cy="260" r="25" />
+    <circle cx="346" cy="260" r="25" />
+    
+    <!-- Middle Row -->
+    <circle cx="166" cy="330" r="25" />
+    <circle cx="256" cy="330" r="25" />
+    <circle cx="346" cy="330" r="25" />
+    
+    <!-- Bottom Row -->
+    <circle cx="166" cy="400" r="25" />
+    <circle cx="256" cy="400" r="25" />
+    <circle cx="346" cy="400" r="25" />
+  </g>
+
+  <!-- Connecting Lines (Neural Network) -->
+  <path d="M166 260 L256 260 M256 260 L346 260 M166 330 L256 330 M256 330 L346 330 M166 400 L256 400 M256 400 L346 400 M166 260 L166 330 M166 330 L166 400 M256 260 L256 330 M256 330 L256 400 M346 260 L346 330 M346 330 L346 400" 
+        stroke="url(#aiGradient)" stroke-width="6" stroke-opacity="0.8" stroke-linecap="round" />
+
+  <!-- Math Symbols floating in the screen -->
+  <text x="180" y="185" font-family="Arial, sans-serif" font-weight="bold" font-size="40" fill="url(#aiGradient)">AI</text>
+  <text x="280" y="185" font-family="Arial, sans-serif" font-weight="bold" font-size="40" fill="#333">+</text>
+  <path d="M330 160 L350 180 M350 160 L330 180" stroke="#333" stroke-width="5" stroke-linecap="round" /> 
+
+</svg>
