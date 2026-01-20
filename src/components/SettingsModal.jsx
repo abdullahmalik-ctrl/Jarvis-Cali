@@ -1,9 +1,28 @@
-import React, { useState } from 'react';
-import { X, Moon, Sun, Key, HelpCircle, ExternalLink, Check } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Moon, Sun, Key, HelpCircle, ExternalLink, Check, Download } from 'lucide-react';
 
 const SettingsModal = ({ isOpen, onClose, isDarkMode, toggleTheme, apiKey, onSaveApiKey }) => {
     const [keyInput, setKeyInput] = useState(apiKey);
     const [showHelp, setShowHelp] = useState(false);
+    const [deferredPrompt, setDeferredPrompt] = useState(null);
+
+    useEffect(() => {
+        const handler = (e) => {
+            e.preventDefault();
+            setDeferredPrompt(e);
+        };
+        window.addEventListener('beforeinstallprompt', handler);
+        return () => window.removeEventListener('beforeinstallprompt', handler);
+    }, []);
+
+    const handleInstall = async () => {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            setDeferredPrompt(null);
+        }
+    };
 
     if (!isOpen) return null;
 
@@ -105,7 +124,34 @@ const SettingsModal = ({ isOpen, onClose, isDarkMode, toggleTheme, apiKey, onSav
                         </div>
                     </div>
 
+                    {/* Install App Section (Only if installable) */}
+                    {deferredPrompt && (
+                        <>
+                            <hr className={`${isDarkMode ? 'border-neutral-800' : 'border-neutral-100'}`} />
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className={`p-2.5 rounded-full ${isDarkMode ? 'bg-orange-500/10 text-orange-400' : 'bg-orange-100 text-orange-600'}`}>
+                                        <Download size={22} />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-medium text-lg">Install App</h3>
+                                        <p className={`text-sm ${isDarkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
+                                            Add to Home Screen
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={handleInstall}
+                                    className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
+                                >
+                                    Install
+                                </button>
+                            </div>
+                        </>
+                    )}
+
                 </div>
+
 
                 {/* Footer */}
                 <div className={`p-6 border-t ${isDarkMode ? 'border-neutral-800' : 'border-neutral-100'}`}>
