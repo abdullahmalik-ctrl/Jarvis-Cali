@@ -6,12 +6,27 @@
   <link rel="icon" type="image/svg+xml" href="./logo.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Jarvis Math</title>
-  <script type="module" crossorigin src="/Jarvis-Cali/assets/index-CadPKTJW.js"></script>
-  <link rel="stylesheet" crossorigin href="/Jarvis-Cali/assets/index-BnfUiz8o.css">
+  <link rel="manifest" href="./manifest.json" />
+  <meta name="theme-color" content="#000000" />
+  <script type="module" crossorigin src="/Jarvis-Cali/assets/index-BCzS_FXp.js"></script>
+  <link rel="stylesheet" crossorigin href="/Jarvis-Cali/assets/index-DAmk25lh.css">
 </head>
 
 <body>
   <div id="root"></div>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/Jarvis-Cali/sw.js')
+          .then(registration => {
+            console.log('SW registered: ', registration);
+          })
+          .catch(registrationError => {
+            console.log('SW registration failed: ', registrationError);
+          });
+      });
+    }
+  </script>
 </body>
 
 </html>
