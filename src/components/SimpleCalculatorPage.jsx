@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, Sparkles, Sun, Moon, History, Ruler, CalendarClock, Delete, FlaskConical, Settings } from 'lucide-react';
+import logo from '../assets/logo.png';
 
 import UnitConverter from './UnitConverter';
 import DateCalculator from './DateCalculator';
@@ -351,9 +352,15 @@ const SimpleCalculatorPage = ({ onSwitch, isDarkMode, onOpenSettings }) => {
         <div className={`w-full h-full flex flex-col ${isDarkMode ? 'bg-black' : 'bg-[#f2f2f2]'} transition-colors duration-500 relative`}>
             {/* Simple Header */}
             <div className="h-16 flex items-center justify-between px-6 shrink-0 absolute top-0 left-0 right-0 z-20">
-                <button onClick={onSwitch} className="flex items-center gap-2 hover:opacity-70 active:scale-95 transition-all">
-                    <Sparkles size={20} className={isDarkMode ? 'text-white' : 'text-black'} />
-                    <span className={`font-semibold tracking-wide text-sm ${isDarkMode ? 'text-white' : 'text-black'}`}>AI TUTOR</span>
+                <button onClick={onSwitch} className="flex items-center gap-3 hover:opacity-70 active:scale-95 transition-all">
+                    <div className="relative">
+                        <div className="absolute -inset-1 bg-cyan-500 rounded-full blur opacity-25 animate-pulse"></div>
+                        <img src={logo} alt="Jarvis Cali" className="relative w-8 h-8 rounded-full border border-cyan-400/50 shadow-[0_0_15px_rgba(34,211,238,0.4)] object-cover" />
+                    </div>
+                    <div className="flex flex-col">
+                        <span className={`font-black tracking-tighter text-sm leading-none ${isDarkMode ? 'text-white' : 'text-black'}`}>JARVIS CALI</span>
+                        <span className={`font-mono text-[8px] tracking-[0.2em] font-bold ${isDarkMode ? 'text-cyan-400' : 'text-cyan-600'}`}>ADVANCED AI</span>
+                    </div>
                 </button>
 
                 <button

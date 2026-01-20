@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Camera, PenTool, Calculator, ChevronLeft, ChevronRight, Sparkles, Sun, Moon, Delete, Trash2, Loader2, X, Eraser, Keyboard, Settings } from 'lucide-react';
+import logo from '../assets/logo.png';
 
 import { MATHTYPE_DATA, MODEL_NAME } from '../utils/constants';
 import { useKatex, MathLabel, LiveMathPreview, MarkdownRenderer } from './MathRenderers';
@@ -354,9 +355,15 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, onOpenSettings }) => {
 
             {/* 1. Header Row */}
             <div className="h-14 flex items-center justify-between px-4 shrink-0 z-30">
-                <button onClick={onBack} className="flex items-center gap-2 text-sm font-semibold tracking-wider hover:opacity-70">
-                    <Calculator size={18} />
-                    <span>SIMPLE</span>
+                <button onClick={onBack} className="flex items-center gap-3 hover:opacity-70 active:scale-95 transition-all group">
+                    <div className="relative">
+                        <div className="absolute -inset-1 bg-cyan-500 rounded-full blur opacity-10 group-hover:opacity-30 transition-opacity"></div>
+                        <img src={logo} alt="Jarvis Cali" className="relative w-7 h-7 rounded-full border border-cyan-400/30 object-cover" />
+                    </div>
+                    <div className="flex flex-col items-start">
+                        <span className={`font-black tracking-tighter text-[11px] leading-none ${isDarkMode ? 'text-white' : 'text-black'}`}>JARVIS CALI</span>
+                        <span className="font-mono text-[7px] tracking-widest text-cyan-500 font-bold">SIMPLE MODE</span>
+                    </div>
                 </button>
                 <div className="p-2 rounded-full bg-[#1E1E1E]">
                     <button onClick={onOpenSettings} className="flex items-center justify-center w-full h-full">
