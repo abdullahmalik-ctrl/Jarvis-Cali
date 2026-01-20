@@ -3,6 +3,7 @@ const urlsToCache = [
     '/Jarvis-Cali/',
     '/Jarvis-Cali/index.html',
     '/Jarvis-Cali/logo.svg',
+    '/Jarvis-Cali/logo.png',
     '/Jarvis-Cali/manifest.json'
 ];
 
