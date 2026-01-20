@@ -1,0 +1,68 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- CSS Styles for Glow Animation -->
+  <style>
+    @keyframes pulse-glow {
+      0%, 100% { opacity: 0.8; filter: drop-shadow(0 0 10px #00e5ff); }
+      50% { opacity: 1; filter: drop-shadow(0 0 20px #00e5ff); }
+    }
+    .reactor-core { animation: pulse-glow 2s infinite ease-in-out; }
+  </style>
+
+  <!-- Definitions for Gradients and Filters -->
+  <defs>
+    <radialGradient id="coreGradient" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="40%" stop-color="#00e5ff" />
+      <stop offset="100%" stop-color="#004e92" stop-opacity="0.8" />
+    </radialGradient>
+    <linearGradient id="metalRing" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2a2a2a" />
+      <stop offset="50%" stop-color="#4a4a4a" />
+      <stop offset="100%" stop-color="#1a1a1a" />
+    </linearGradient>
+    <filter id="blueGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Main Outer Structure (Transparent Background) -->
+  
+  <!-- Outer Metal Ring -->
+  <circle cx="256" cy="256" r="240" stroke="#00e5ff" stroke-width="4" stroke-opacity="0.5" fill="none"/>
+  <circle cx="256" cy="256" r="220" stroke="url(#metalRing)" stroke-width="20" fill="none" opacity="0.9"/>
+  
+  <!-- Inner Coils (10 Sectors) -->
+  <g stroke="#b87333" stroke-width="12" stroke-linecap="round">
+    <!-- Copper coils simulated with strokes around the ring -->
+    <line x1="256" y1="60" x2="256" y2="100" transform="rotate(0 256 256)" />
+    <line x1="256" y1="60" x2="256" y2="100" transform="rotate(36 256 256)" />
+    <line x1="256" y1="60" x2="256" y2="100" transform="rotate(72 256 256)" />
+    <line x1="256" y1="60" x2="256" y2="100" transform="rotate(108 256 256)" />
+    <line x1="256" y1="60" x2="256" y2="100" transform="rotate(144 256 256)" />
+    <line x1="256" y1="60" x2="256" y2="100" transform="rotate(180 256 256)" />
+    <line x1="256" y1="60" x2="256" y2="100" transform="rotate(216 256 256)" />
+    <line x1="256" y1="60" x2="256" y2="100" transform="rotate(252 256 256)" />
+    <line x1="256" y1="60" x2="256" y2="100" transform="rotate(288 256 256)" />
+    <line x1="256" y1="60" x2="256" y2="100" transform="rotate(324 256 256)" />
+  </g>
+
+  <!-- Inner Glowing Ring -->
+  <circle cx="256" cy="256" r="130" stroke="#00e5ff" stroke-width="6" fill="none" filter="url(#blueGlow)" opacity="0.8"/>
+
+  <!-- The Core -->
+  <g class="reactor-core">
+    <!-- Central Triangle Shape -->
+    <path d="M256 160 L339 304 H173 Z" stroke="#00e5ff" stroke-width="4" fill="url(#coreGradient)" fill-opacity="0.3" filter="url(#blueGlow)"/>
+    
+    <!-- Central Circle -->
+    <circle cx="256" cy="256" r="50" fill="white" filter="url(#blueGlow)"/>
+    <circle cx="256" cy="256" r="40" fill="#00e5ff" opacity="0.8"/>
+  </g>
+  
+  <!-- Overlay Highlights -->
+  <circle cx="256" cy="256" r="250" stroke="#00e5ff" stroke-width="1" opacity="0.3"/>
+</svg>
