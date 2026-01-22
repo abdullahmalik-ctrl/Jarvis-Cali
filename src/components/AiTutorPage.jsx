@@ -391,7 +391,7 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, onOpenSettings }) => {
                         {/* Wrapper for text alignment */}
                         <div className="text-right w-full">
                             {inputText ? (
-                                <div className="text-3xl font-light tracking-wide break-all inline-block text-right">
+                                <div className="text-3xl font-light tracking-wide w-full flex justify-end items-center overflow-hidden whitespace-nowrap">
                                     <LiveMathPreview
                                         input={inputText}
                                         cursorPosition={cursorPos}
