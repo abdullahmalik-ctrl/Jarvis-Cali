@@ -122,24 +122,26 @@ export const LiveMathPreview = ({ input, cursorPosition, isReady, isDarkMode }) 
                     output: 'html',
                 });
 
-                // Dynamic Font Scaling
+                // --- Dynamic Font Scaling (Robust) ---
                 const el = containerRef.current;
-                el.style.fontSize = ''; // Reset to base size
-                el.style.justifyContent = 'center'; // Reset alignment
 
-                // Check overflow
-                if (el.scrollWidth > el.clientWidth) {
-                    const style = window.getComputedStyle(el);
-                    const currentSize = parseFloat(style.fontSize);
-                    const ratio = el.clientWidth / el.scrollWidth;
+                // 1. Reset to base size to measure natural width
+                el.style.fontSize = '';
+                el.style.width = 'fit-content';
+                el.style.whiteSpace = 'nowrap';
 
-                    // Apply scale with a minimum limit (e.g., 14px)
-                    const newSize = Math.max(currentSize * ratio * 0.95, 14); // 0.95 buffer
-                    el.style.fontSize = `${newSize}px`;
+                // 2. Measure parent (constraint) vs child (content)
+                const parentWidth = el.parentElement ? el.parentElement.clientWidth : window.innerWidth;
+                let currentSize = 48; // Base size (text-4xl/5xl approx 48px)
 
-                    // If scaled down confusingly small, maybe align left? 
-                    // But usually center is fine if it fits.
+                // 3. Loop: Shrink until it fits
+                while (el.scrollWidth > parentWidth && currentSize > 14) {
+                    currentSize -= 2;
+                    el.style.fontSize = `${currentSize}px`;
                 }
+
+                // 4. Restore width to full for centering if it fits
+                el.style.width = '100%';
 
             } catch (e) {
                 // Fallback
