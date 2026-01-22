@@ -29,6 +29,13 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, onOpenSettings }) => {
 
     const isKatexReady = useKatex();
 
+    // Force blur on mount to prevent mobile keyboard from opening automatically
+    useEffect(() => {
+        if (document.activeElement instanceof HTMLElement) {
+            document.activeElement.blur();
+        }
+    }, []);
+
 
     // --- Drawing Logic ---
     useEffect(() => {
@@ -497,22 +504,40 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, onOpenSettings }) => {
             {drawTool === 'type' && (
                 <div className="shrink-0 z-30 pb-4">
                     {/* Category Tabs */}
-                    <div className="flex items-center gap-2 overflow-x-auto scrollbar-none px-4 mb-3">
-                        <button className="w-8 h-8 rounded-lg bg-green-500 flex items-center justify-center shrink-0">
-                            <Calculator size={16} className="text-white" />
+                    {/* Category Tabs - Fixed Layout */}
+                    <div className="flex items-center gap-2 px-4 mb-3">
+                        {/* Fixed Left Icon */}
+                        <button className="w-10 h-10 rounded-xl bg-green-500 flex items-center justify-center shrink-0 shadow-sm">
+                            <Calculator size={20} className="text-white" />
                         </button>
-                        {Object.keys(MATHTYPE_DATA).map(key => (
+
+                        {/* Scrollable Center */}
+                        <div className="flex-1 flex items-center gap-2 overflow-x-auto scrollbar-none h-10">
+                            {Object.keys(MATHTYPE_DATA).map(key => (
+                                <button
+                                    key={key}
+                                    onClick={() => setActiveMathTab(key)}
+                                    className={`h-10 px-5 rounded-full text-xs font-bold tracking-wider uppercase whitespace-nowrap transition-all flex items-center justify-center shrink-0 border ${activeMathTab === key ?
+                                        'bg-[#2A2A2A] text-white border-neutral-600 shadow-md' :
+                                        'bg-[#121212] text-neutral-500 border-transparent hover:bg-[#1a1a1a]'}`}
+                                >
+                                    {key}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Divider */}
+                        <div className="w-px h-6 bg-neutral-800 shrink-0 mx-1"></div>
+
+                        {/* Fixed Right Delete Button */}
+                        <div className="shrink-0 pl-1">
                             <button
-                                key={key}
-                                onClick={() => setActiveMathTab(key)}
-                                className={`h-8 px-4 rounded-full text-[10px] font-bold tracking-wider uppercase whitespace-nowrap transition-colors flex items-center justify-center ${activeMathTab === key ?
-                                    'bg-[#2A2A2A] text-white border border-neutral-600' :
-                                    'bg-[#121212] text-neutral-500 border border-transparent'}`}
+                                onClick={() => handleMathTabPress({ type: 'action', action: 'delete' })}
+                                className="w-10 h-10 flex items-center justify-center rounded-full text-red-500 hover:bg-red-500/10 active:scale-95 transition-all"
                             >
-                                {key}
+                                <Delete size={22} />
                             </button>
-                        ))}
-                        <button onClick={() => handleMathTabPress({ type: 'action', action: 'delete' })} className="ml-auto text-red-500"><Delete size={20} /></button>
+                        </div>
                     </div>
 
                     {/* Keypad Grid */}
