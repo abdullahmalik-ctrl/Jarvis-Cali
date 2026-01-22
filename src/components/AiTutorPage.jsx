@@ -311,15 +311,22 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, onOpenSettings }) => {
         return style;
     };
 
+    // --- Atomic Input Sync: Ensure the hidden input always knows where our custom cursor is ---
+    useEffect(() => {
+        const inputEl = document.getElementById('math-input-hidden');
+        if (inputEl && document.activeElement === inputEl) {
+            inputEl.setSelectionRange(cursorPos, cursorPos);
+        }
+    }, [cursorPos]);
+
     // --- Helper: Atomic Token Detection (Jump over \sqrt{, \sin(, \pi, etc.) ---
     const getAtomicTokenBefore = (text, pos) => {
-        const MAX_LOOKBACK = 12;
+        const MAX_LOOKBACK = 15;
         for (let i = 1; i <= MAX_LOOKBACK; i++) {
             if (pos - i < 0) break;
             if (text[pos - i] === '\\') {
                 const candidate = text.slice(pos - i, pos);
                 // Matches \cmd, \cmd{, \cmd(, \cmd[
-                // We ensure it's a valid command start
                 if (/^\\[a-zA-Z]+[\{\(\[]?$/.test(candidate)) {
                     return candidate;
                 }
@@ -355,13 +362,6 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, onOpenSettings }) => {
         }
 
         setCursorPos(newPos);
-
-        requestAnimationFrame(() => {
-            if (inputEl) {
-                inputEl.focus();
-                inputEl.setSelectionRange(newPos, newPos);
-            }
-        });
     };
 
     return (
@@ -422,7 +422,21 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, onOpenSettings }) => {
                                 setCursorPos(e.target.selectionStart);
                             }}
                             onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
+                                if (e.key === 'Backspace') {
+                                    const token = getAtomicTokenBefore(inputText, cursorPos);
+                                    if (token && token.length > 1) {
+                                        e.preventDefault();
+                                        const newText = inputText.slice(0, cursorPos - token.length) + inputText.slice(cursorPos);
+                                        setInputText(newText);
+                                        setCursorPos(cursorPos - token.length);
+                                    }
+                                } else if (e.key === 'ArrowLeft') {
+                                    e.preventDefault();
+                                    moveCursor('left');
+                                } else if (e.key === 'ArrowRight') {
+                                    e.preventDefault();
+                                    moveCursor('right');
+                                } else if (e.key === 'Enter') {
                                     e.preventDefault();
                                     callGemini();
                                 }
