@@ -168,18 +168,25 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, onOpenSettings }) => {
         // Use LaTeX for input where possible to look "real"
         // But we need to be careful with placeholders like \sqrt{x} -> we want \sqrt{
         let valToInsert = item.value;
+        let offset = 0;
 
         if (item.latex) {
             if (item.latex.includes('{x}') || item.latex.includes('{n}')) {
                 // specific handling for things like \sqrt{x}
-                if (item.latex === '\\sqrt{x}') valToInsert = '\\sqrt{';
-                else if (item.latex === '\\sqrt[n]{x}') valToInsert = '\\sqrt['; // simplified
+                if (item.latex === '\\sqrt{x}') {
+                    valToInsert = '\\sqrt{}';
+                    offset = -1;
+                } else if (item.latex === '\\sqrt[n]{x}') {
+                    valToInsert = '\\sqrt[]{}';
+                    offset = -1; //Simplified inside second brace
+                }
             } else if (item.latex.startsWith('\\') && !item.latex.includes('box')) {
                 // For \pi, \times, \div, \sin, etc.
                 valToInsert = item.latex;
-                // Add '(' for functions if the original value had it, ensuring we open the function
+                // Add '()' for functions if the original value had it
                 if (item.value.endsWith('(') && !valToInsert.endsWith('{')) {
-                    valToInsert += '(';
+                    valToInsert += '()';
+                    offset = -1;
                 }
             }
         }
@@ -189,7 +196,7 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, onOpenSettings }) => {
         if (item.value === '*') valToInsert = '\\times';
 
         // Handle insertion and cursor
-        insertAtCursor(valToInsert);
+        insertAtCursor(valToInsert, offset);
     };
 
     // --- AI & Math Logic ---
