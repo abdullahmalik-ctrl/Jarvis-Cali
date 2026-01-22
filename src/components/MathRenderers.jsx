@@ -121,6 +121,26 @@ export const LiveMathPreview = ({ input, cursorPosition, isReady, isDarkMode }) 
                     displayMode: true,
                     output: 'html',
                 });
+
+                // Dynamic Font Scaling
+                const el = containerRef.current;
+                el.style.fontSize = ''; // Reset to base size
+                el.style.justifyContent = 'center'; // Reset alignment
+
+                // Check overflow
+                if (el.scrollWidth > el.clientWidth) {
+                    const style = window.getComputedStyle(el);
+                    const currentSize = parseFloat(style.fontSize);
+                    const ratio = el.clientWidth / el.scrollWidth;
+
+                    // Apply scale with a minimum limit (e.g., 14px)
+                    const newSize = Math.max(currentSize * ratio * 0.95, 14); // 0.95 buffer
+                    el.style.fontSize = `${newSize}px`;
+
+                    // If scaled down confusingly small, maybe align left? 
+                    // But usually center is fine if it fits.
+                }
+
             } catch (e) {
                 // Fallback
             }
