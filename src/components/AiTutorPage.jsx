@@ -541,7 +541,7 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, onOpenSettings }) => {
                     </div>
 
                     {/* Keypad Grid */}
-                    <div className="grid grid-cols-5 gap-2 px-3 mb-4">
+                    <div className="grid grid-cols-5 gap-2 px-3 mb-4 h-[272px] overflow-y-auto scrollbar-none content-start">
                         {MATHTYPE_DATA[activeMathTab].map((item, i) => (
                             <button
                                 key={i}
