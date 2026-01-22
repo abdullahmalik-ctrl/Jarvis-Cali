@@ -1,13 +1,13 @@
-const CACHE_NAME = 'jarvis-math-v2';
+const CACHE_NAME = 'jarvis-math-v3';
 const urlsToCache = [
-    '/Jarvis-Cali/',
-    '/Jarvis-Cali/index.html',
-    '/Jarvis-Cali/logo.svg',
-    '/Jarvis-Cali/logo.png',
-    '/Jarvis-Cali/manifest.json'
+    './',
+    './index.html',
+    './logo.svg',
+    './manifest.json'
 ];
 
 self.addEventListener('install', (event) => {
+    self.skipWaiting(); // Force new SW to activate immediately
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then((cache) => {
@@ -18,12 +18,21 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('fetch', (event) => {
     event.respondWith(
-        caches.match(event.request)
+        fetch(event.request)
             .then((response) => {
-                if (response) {
-                    return response;
+                // Network request succeeded
+                // Clone the response to update the cache
+                if (response && response.status === 200 && response.type === 'basic') {
+                    const responseClone = response.clone();
+                    caches.open(CACHE_NAME).then((cache) => {
+                        cache.put(event.request, responseClone);
+                    });
                 }
-                return fetch(event.request);
+                return response;
+            })
+            .catch(() => {
+                // Network failed, try cache
+                return caches.match(event.request);
             })
     );
 });
