@@ -69,7 +69,7 @@ export const MathLabel = ({ latex, label, isReady }) => {
 export const LiveMathPreview = ({ input, cursorPosition, isReady, isDarkMode }) => {
     const containerRef = useRef(null);
 
-    useEffect(() => {
+    useLayoutEffect(() => {
         if (isReady && window.katex && containerRef.current) {
 
             const CURSOR_TOKEN = "CURSORMARKER";
