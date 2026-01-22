@@ -4,6 +4,7 @@ import logo from '../assets/logo.svg';
 
 import { MATHTYPE_DATA, MODEL_NAME } from '../utils/constants';
 import { useKatex, MathLabel, LiveMathPreview, MarkdownRenderer } from './MathRenderers';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const AiTutorPage = ({ onBack, isDarkMode, apiKey, onOpenSettings }) => {
 
@@ -515,18 +516,28 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, onOpenSettings }) => {
                         </button>
 
                         {/* Scrollable Center */}
-                        <div className="flex-1 flex items-center gap-2 overflow-x-auto scrollbar-none h-10">
-                            {Object.keys(MATHTYPE_DATA).filter(k => k !== '123').map(key => (
-                                <button
-                                    key={key}
-                                    onClick={() => setActiveMathTab(key)}
-                                    className={`h-10 px-5 rounded-full text-xs font-bold tracking-wider uppercase whitespace-nowrap transition-all flex items-center justify-center shrink-0 border ${activeMathTab === key ?
-                                        'bg-[#2A2A2A] text-white border-neutral-600 shadow-md' :
-                                        'bg-[#121212] text-neutral-500 border-transparent hover:bg-[#1a1a1a]'}`}
-                                >
-                                    {key}
-                                </button>
-                            ))}
+                        <div className="flex-1 flex items-center gap-2 overflow-x-auto scrollbar-none h-10 px-1">
+                            {Object.keys(MATHTYPE_DATA).filter(k => k !== '123').map(key => {
+                                const isActive = activeMathTab === key;
+                                return (
+                                    <button
+                                        key={key}
+                                        onClick={() => setActiveMathTab(key)}
+                                        className={`relative h-10 px-5 rounded-full text-xs font-bold tracking-wider uppercase whitespace-nowrap transition-colors flex items-center justify-center shrink-0 border z-10 ${isActive ?
+                                            'text-white border-neutral-600' :
+                                            'text-neutral-500 border-transparent hover:bg-[#1a1a1a]'}`}
+                                    >
+                                        {isActive && (
+                                            <motion.div
+                                                layoutId="activeMathTab"
+                                                className="absolute inset-0 bg-[#2A2A2A] rounded-full -z-10 shadow-md"
+                                                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                            />
+                                        )}
+                                        <span className="relative z-20">{key}</span>
+                                    </button>
+                                );
+                            })}
                         </div>
 
                         {/* Divider */}
@@ -544,17 +555,29 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, onOpenSettings }) => {
                     </div>
 
                     {/* Keypad Grid */}
-                    <div className="grid grid-cols-5 gap-2 px-3 mb-4 h-[272px] overflow-y-auto scrollbar-none content-start">
-                        {MATHTYPE_DATA[activeMathTab].map((item, i) => (
-                            <button
-                                key={i}
-                                onClick={() => handleMathTabPress(item)}
-                                className={getBtnStyle(item)}
-                            >
-                                <MathLabel latex={item.latex} label={item.label || item.value} isReady={isKatexReady} isDarkMode={isDarkMode} />
-                            </button>
-                        ))}
-                    </div>
+                    <AnimatePresence mode="popLayout" initial={false}>
+                        <motion.div
+                            key={activeMathTab}
+                            initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -10, scale: 0.98 }}
+                            transition={{ duration: 0.25, ease: "easeOut" }}
+                            className="grid grid-cols-5 gap-2 px-3 mb-4 h-[272px] overflow-y-auto scrollbar-none content-start"
+                        >
+                            {MATHTYPE_DATA[activeMathTab].map((item, i) => (
+                                <motion.button
+                                    key={`${activeMathTab}-${i}`}
+                                    onClick={() => handleMathTabPress(item)}
+                                    className={getBtnStyle(item)}
+                                    whileTap={{ scale: 0.9 }}
+                                    whileHover={{ scale: 1.05 }}
+                                    layout // layout prop helps smooth list reordering if needed
+                                >
+                                    <MathLabel latex={item.latex} label={item.label || item.value} isReady={isKatexReady} isDarkMode={isDarkMode} />
+                                </motion.button>
+                            ))}
+                        </motion.div>
+                    </AnimatePresence>
 
                     {/* Bottom Action Bar (Type Mode) */}
                     <div className="flex items-center gap-3 px-4 pt-2">
@@ -661,8 +684,11 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, onOpenSettings }) => {
             )}
 
             {/* Solution Sheet Overlay */}
-            <div
-                className={`absolute inset-x-0 bottom-0 bg-white dark:bg-[#181818] rounded-t-[2rem] shadow-[0_-10px_40px_rgba(0,0,0,0.5)] transition-transform duration-500 flex flex-col z-50 ${isAiTutorOpen ? 'translate-y-0' : 'translate-y-full'}`}
+            <motion.div
+                initial={{ y: '100%' }}
+                animate={{ y: isAiTutorOpen ? '0%' : '100%' }}
+                transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                className={`absolute inset-x-0 bottom-0 bg-white dark:bg-[#181818] rounded-t-[2rem] shadow-[0_-10px_40px_rgba(0,0,0,0.5)] flex flex-col z-50`}
                 style={{ height: '90%' }}
             >
                 <div
@@ -691,7 +717,7 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, onOpenSettings }) => {
                         </div>
                     ) : null}
                 </div>
-            </div>
+            </motion.div>
 
         </div>
     );
