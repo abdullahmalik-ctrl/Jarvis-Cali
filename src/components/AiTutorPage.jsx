@@ -506,14 +506,17 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, onOpenSettings }) => {
                     {/* Category Tabs */}
                     {/* Category Tabs - Fixed Layout */}
                     <div className="flex items-center gap-2 px-4 mb-3">
-                        {/* Fixed Left Icon */}
-                        <button className="w-10 h-10 rounded-xl bg-green-500 flex items-center justify-center shrink-0 shadow-sm">
-                            <Calculator size={20} className="text-white" />
+                        {/* Fixed Left Icon - Acts as '123' Tab */}
+                        <button
+                            onClick={() => setActiveMathTab('123')}
+                            className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-all ${activeMathTab === '123' ? 'bg-green-500 text-white' : 'bg-[#1E1E1E] text-green-500 hover:bg-[#333]'}`}
+                        >
+                            <Calculator size={20} />
                         </button>
 
                         {/* Scrollable Center */}
                         <div className="flex-1 flex items-center gap-2 overflow-x-auto scrollbar-none h-10">
-                            {Object.keys(MATHTYPE_DATA).map(key => (
+                            {Object.keys(MATHTYPE_DATA).filter(k => k !== '123').map(key => (
                                 <button
                                     key={key}
                                     onClick={() => setActiveMathTab(key)}
