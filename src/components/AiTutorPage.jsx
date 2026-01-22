@@ -415,7 +415,7 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, onOpenSettings }) => {
                             }}
                             onKeyUp={(e) => setCursorPos(e.target.selectionStart)}
                             onClick={(e) => setCursorPos(e.target.selectionStart)}
-                            autoFocus
+                            autoFocus={false}
                         />
                     </div>
                 ) : drawTool === 'image' ? (

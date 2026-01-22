@@ -374,7 +374,10 @@ const SimpleCalculatorPage = ({ onSwitch, isDarkMode, onOpenSettings }) => {
             </div>
 
             {/* Display */}
-            <div className="flex-1 flex flex-col px-8 pb-4 pt-20 overflow-hidden relative">
+            <div
+                className="flex-1 flex flex-col px-8 pb-4 pt-20 overflow-hidden relative cursor-text"
+                onClick={() => document.getElementById('simple-calc-input')?.focus()}
+            >
                 <div className="flex-1 flex flex-col justify-end items-end gap-2">
                     {/* Main Equation Input */}
                     <div className={`text-6xl font-light tracking-tight break-all text-right ${isDarkMode ? 'text-white' : 'text-black'}`}>
@@ -409,7 +412,7 @@ const SimpleCalculatorPage = ({ onSwitch, isDarkMode, onOpenSettings }) => {
                     className="absolute inset-0 w-full h-full opacity-0 cursor-text scroll-m-0"
                     value=""
                     onChange={() => { }}
-                    autoFocus
+                    autoFocus={false}
                     onKeyDown={(e) => {
                         const key = e.key;
 
