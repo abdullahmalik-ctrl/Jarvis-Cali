@@ -1,4 +1,4 @@
-const CACHE_NAME = 'jarvis-math-v3';
+const CACHE_NAME = 'jarvis-math-v4';
 const urlsToCache = [
     './',
     './index.html',
