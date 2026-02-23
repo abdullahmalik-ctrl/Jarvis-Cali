@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { ChevronLeft, Calendar as CalendarIcon, ArrowUp, ArrowDown, Delete } from 'lucide-react';
 import { parseDDMMYYYY, formatDDMMYYYY } from '../utils/dateUtils';
 import CalendarWidget from './CalendarWidget';
+import useSwipeGesture from '../hooks/useSwipeGesture';
 
 const DateCalculator = ({ onClose, isDarkMode }) => {
     const [activeTab, setActiveTab] = useState('Difference');
@@ -20,6 +21,12 @@ const DateCalculator = ({ onClose, isDarkMode }) => {
 
     // Active Field for Calendar Popup
     const [activeField, setActiveField] = useState(null); // 'date1', 'date2', 'opDate'
+
+    // Swipe right or left to close (Universal Back)
+    const { ref: swipeRef } = useSwipeGesture({
+        direction: 'horizontal',
+        onSwipe: onClose,
+    });
 
     // Difference Calculation
     const diffResult = useMemo(() => {
@@ -137,7 +144,7 @@ const DateCalculator = ({ onClose, isDarkMode }) => {
     const nativeInputClass = `w-full bg-transparent text-xl py-2 border-b focus:outline-none focus:border-green-500 transition-colors ${isDarkMode ? 'border-neutral-800 text-white' : 'border-neutral-200 text-black'}`;
 
     return (
-        <div className={`flex flex-col h-full ${isDarkMode ? 'bg-black text-white' : 'bg-white text-black'}`}>
+        <div ref={swipeRef} className={`flex flex-col h-full ${isDarkMode ? 'bg-black text-white' : 'bg-white text-black'}`}>
             {/* Header */}
             <div className="h-16 flex items-center gap-4 px-4 shrink-0 relative z-20">
                 <button onClick={onClose} className={`p-2 rounded-full ${isDarkMode ? 'hover:bg-neutral-800' : 'hover:bg-neutral-100'}`}>

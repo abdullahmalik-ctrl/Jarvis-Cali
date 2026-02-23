@@ -1,4 +1,4 @@
-export const MODEL_NAME = "gemini-2.5-flash-preview-09-2025";
+export const MODEL_NAME = "gemini-1.5-flash";
 
 export const withDelete = (arr) => {
     return [...arr, { label: '⌫', type: 'action', action: 'delete', category: 'warning' }];

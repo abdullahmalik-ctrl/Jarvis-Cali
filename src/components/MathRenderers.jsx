@@ -83,6 +83,7 @@ export const LiveMathPreview = ({ input, cursorPosition, isReady, isDarkMode }) 
 
             let latex = textWithCursor
                 .replace(/\*/g, '\\times ')
+                .replace(/%/g, '\\% ')
                 .replace(/rad/g, '\\mathrm{rad}')
                 .replace(/ infinity /g, '\\infty ')
                 .replace(/partial/g, '\\partial')

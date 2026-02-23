@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronLeft, ChevronDown, X, Delete, ArrowUp, ArrowDown } from 'lucide-react';
 import { UNIT_DATA } from '../utils/constants';
+import useSwipeGesture from '../hooks/useSwipeGesture';
 
 const UnitConverter = ({ onClose, isDarkMode }) => {
     const [activeCategory, setActiveCategory] = useState('Area');
@@ -11,6 +12,12 @@ const UnitConverter = ({ onClose, isDarkMode }) => {
 
     // New state for handling the pill-based selection view
     const [selectionMode, setSelectionMode] = useState(null); // 'input' | 'output' | null
+
+    // Swipe right or left to close (Universal Back)
+    const { ref: swipeRef } = useSwipeGesture({
+        direction: 'horizontal',
+        onSwipe: onClose,
+    });
 
     // Initialize units when category changes
     useEffect(() => {
@@ -157,7 +164,7 @@ const UnitConverter = ({ onClose, isDarkMode }) => {
     };
 
     return (
-        <div className={`flex flex-col h-full ${isDarkMode ? 'bg-black text-white' : 'bg-white text-black'}`}>
+        <div ref={swipeRef} className={`flex flex-col h-full ${isDarkMode ? 'bg-black text-white' : 'bg-white text-black'}`}>
             {/* Header */}
             <div className="h-16 flex items-center gap-4 px-4 shrink-0 relative z-20">
                 <button onClick={onClose} className={`p-2 rounded-full ${isDarkMode ? 'hover:bg-neutral-800' : 'hover:bg-neutral-100'}`}>
@@ -174,8 +181,8 @@ const UnitConverter = ({ onClose, isDarkMode }) => {
                             key={cat}
                             onClick={() => setActiveCategory(cat)}
                             className={`px-6 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${activeCategory === cat
-                                    ? (isDarkMode ? 'bg-neutral-800 text-white' : 'bg-[#e8e8e8] text-black')
-                                    : (isDarkMode ? 'text-neutral-500 hover:text-neutral-300' : 'text-neutral-500 hover:text-black')
+                                ? (isDarkMode ? 'bg-neutral-800 text-white' : 'bg-[#e8e8e8] text-black')
+                                : (isDarkMode ? 'text-neutral-500 hover:text-neutral-300' : 'text-neutral-500 hover:text-black')
                                 }`}
                         >
                             {cat}
@@ -265,8 +272,8 @@ const UnitConverter = ({ onClose, isDarkMode }) => {
                                         setSelectionMode(null);
                                     }}
                                     className={`py-4 px-4 rounded-3xl text-sm font-medium transition-all ${isSelected
-                                            ? (isDarkMode ? 'bg-green-600 text-white shadow-lg shadow-green-900/20' : 'bg-green-500 text-white shadow-lg shadow-green-500/20')
-                                            : (isDarkMode ? 'bg-neutral-900 text-neutral-300 hover:bg-neutral-800' : 'bg-[#f0f0f0] text-neutral-700 hover:bg-[#e6e6e6]')
+                                        ? (isDarkMode ? 'bg-green-600 text-white shadow-lg shadow-green-900/20' : 'bg-green-500 text-white shadow-lg shadow-green-500/20')
+                                        : (isDarkMode ? 'bg-neutral-900 text-neutral-300 hover:bg-neutral-800' : 'bg-[#f0f0f0] text-neutral-700 hover:bg-[#e6e6e6]')
                                         }`}
                                 >
                                     <div className="flex flex-col items-start gap-1">

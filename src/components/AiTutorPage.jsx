@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, PenTool, Calculator, ChevronLeft, ChevronRight, Sparkles, Sun, Moon, Delete, Trash2, Loader2, X, Eraser, Keyboard, Settings } from 'lucide-react';
+import { Camera, PenTool, Calculator, ChevronLeft, ChevronRight, Sparkles, Sun, Moon, Delete, Trash2, Loader2, X, Eraser, Keyboard, Settings, History } from 'lucide-react';
 import logo from '../assets/logo.svg';
 
 import { MATHTYPE_DATA, MODEL_NAME } from '../utils/constants';
 import { useKatex, MathLabel, LiveMathPreview, MarkdownRenderer } from './MathRenderers';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useAnimation, useDragControls } from 'framer-motion';
+import useSwipeGesture from '../hooks/useSwipeGesture';
 
-const AiTutorPage = ({ onBack, isDarkMode, apiKey, onOpenSettings }) => {
+const AiTutorPage = ({ onBack, isDarkMode, apiKey, modelName, onOpenSettings }) => {
 
     // --- State ---
     const [inputText, setInputText] = useState('');
@@ -16,6 +17,13 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, onOpenSettings }) => {
     const [result, setResult] = useState(null);
     const [error, setError] = useState(null);
     const [isAiTutorOpen, setIsAiTutorOpen] = useState(false);
+    const [isAiTutorExpanded, setIsAiTutorExpanded] = useState(false);
+    const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+    const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
+    const [tutorHistory, setTutorHistory] = useState(() => {
+        const saved = localStorage.getItem('tutor_history');
+        return saved ? JSON.parse(saved) : [];
+    });
 
     // Drawing State
     const [drawTool, setDrawTool] = useState('type'); // 'type' | 'draw' | 'image'
@@ -29,6 +37,33 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, onOpenSettings }) => {
     const [activeMathTab, setActiveMathTab] = useState('123');
 
     const isKatexReady = useKatex();
+
+    // Motion values or refs for draggable sheets
+    const sheetControls = useAnimation();
+    const historyDragControls = useDragControls();
+    const solutionDragControls = useDragControls();
+    const solutionScrollRef = useRef(null);
+
+    // Swipe to go back (Universal Back: Left or Right)
+    const { ref: pageSwipeRef } = useSwipeGesture({
+        direction: 'horizontal',
+        onSwipe: onBack,
+        enabled: !isAiTutorOpen && !isHistoryOpen && drawTool === 'type',
+    });
+
+    // Sync history to localStorage
+    useEffect(() => {
+        localStorage.setItem('tutor_history', JSON.stringify(tutorHistory));
+    }, [tutorHistory]);
+
+    // Clear expansion states when sheets close
+    useEffect(() => {
+        if (!isHistoryOpen) setIsHistoryExpanded(false);
+    }, [isHistoryOpen]);
+
+    useEffect(() => {
+        if (!isAiTutorOpen) setIsAiTutorExpanded(false);
+    }, [isAiTutorOpen]);
 
     // Force blur on mount to prevent mobile keyboard from opening automatically
     useEffect(() => {
@@ -153,11 +188,30 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, onOpenSettings }) => {
                 setCursorPos(0);
             } else if (item.action === 'delete') {
                 if (inputText.length > 0 && cursorPos > 0) {
-                    // Atomic Deletion
-                    const tokenBefore = getAtomicTokenBefore(inputText, cursorPos);
-                    const deleteAmount = tokenBefore ? tokenBefore.length : 1;
+                    const charBefore = inputText[cursorPos - 1];
+                    const charAfter = inputText[cursorPos];
 
-                    const newText = inputText.slice(0, cursorPos - deleteAmount) + inputText.slice(cursorPos);
+                    // 1. Logic override: If after a closer (}, ), ]), move cursor INSIDE instead of deleting
+                    if (['}', ')', ']'].includes(charBefore)) {
+                        setCursorPos(cursorPos - 1);
+                        return;
+                    }
+
+                    // 2. Identify and handle atomic deletion
+                    const tokenBefore = getAtomicTokenBefore(inputText, cursorPos);
+                    let deleteAmount = tokenBefore ? tokenBefore.length : 1;
+                    let deleteAfterAmount = 0;
+
+                    // 3. If deleting a command opener (ends in {, (, [), check if closer is right after
+                    if (tokenBefore && ['{', '(', '['].includes(tokenBefore.slice(-1))) {
+                        const pairs = { '{': '}', '(': ')', '[': ']' };
+                        const closer = pairs[tokenBefore.slice(-1)];
+                        if (charAfter === closer) {
+                            deleteAfterAmount = 1;
+                        }
+                    }
+
+                    const newText = inputText.slice(0, cursorPos - deleteAmount) + inputText.slice(cursorPos + deleteAfterAmount);
                     setInputText(newText);
                     setCursorPos(cursorPos - deleteAmount);
                 }
@@ -166,34 +220,38 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, onOpenSettings }) => {
         }
 
         // Use LaTeX for input where possible to look "real"
-        // But we need to be careful with placeholders like \sqrt{x} -> we want \sqrt{
         let valToInsert = item.value;
         let offset = 0;
 
         if (item.latex) {
-            if (item.latex.includes('{x}') || item.latex.includes('{n}')) {
-                // specific handling for things like \sqrt{x}
-                if (item.latex === '\\sqrt{x}') {
-                    valToInsert = '\\sqrt{}';
-                    offset = -1;
-                } else if (item.latex === '\\sqrt[n]{x}') {
-                    valToInsert = '\\sqrt[]{}';
-                    offset = -1; //Simplified inside second brace
+            // 1. Handle Templates with placeholders (\Box, {x}, {n})
+            if (item.latex.includes('\\Box') || item.latex.includes('{x}') || item.latex.includes('{n}')) {
+                valToInsert = item.latex
+                    .replace(/\\Box/g, '{}')
+                    .replace(/\{x\}/g, '{}')
+                    .replace(/\{n\}/g, '{}');
+
+                // Position cursor inside the first empty pair
+                const firstPair = valToInsert.indexOf('{}');
+                if (firstPair !== -1) {
+                    offset = firstPair + 1 - valToInsert.length;
                 }
-            } else if (item.latex.startsWith('\\') && !item.latex.includes('box')) {
-                // For \pi, \times, \div, \sin, etc.
+            }
+            // 2. Handle standard LaTeX commands (\pi, \sin, etc.)
+            else if (item.latex.startsWith('\\') && !item.latex.includes('box')) {
                 valToInsert = item.latex;
                 // Add '()' for functions if the original value had it
-                if (item.value.endsWith('(') && !valToInsert.endsWith('{')) {
+                if (item.value.endsWith('(') && !valToInsert.endsWith('{') && !valToInsert.endsWith(')')) {
                     valToInsert += '()';
                     offset = -1;
                 }
             }
         }
 
-        // Manual Obvious Overrides
-        if (item.value === '/') valToInsert = '\\div';
+        // Manual Obvious Overrides (Only if we haven't already handled a complex template)
+        if (item.value === '/' && (!item.latex || !item.latex.includes('Box'))) valToInsert = '\\div';
         if (item.value === '*') valToInsert = '\\times';
+        if (item.value === '%') valToInsert = '%';
 
         // Handle insertion and cursor
         insertAtCursor(valToInsert, offset);
@@ -206,6 +264,7 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, onOpenSettings }) => {
             const cleanExpr = expr
                 .replace(/\\times/g, '*')
                 .replace(/\\div/g, '/')
+                .replace(/%/g, '/100')
                 .replace(/\\pi/g, 'Math.PI')
                 .replace(/\\sqrt\{/g, 'Math.sqrt(') // \sqrt{ -> sqrt( -- Note: this requires user to have typed closing brace '}' which matches ')' logic roughly?
                 // For simplicity, we assume the user might not have typed '}' yet so local eval might fail, which is fine, AI will take over.
@@ -238,7 +297,7 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, onOpenSettings }) => {
             if (!apiKey) throw new Error("API Key is missing. Please add it in Settings.");
 
 
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`;
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName || MODEL_NAME}:generateContent?key=${apiKey}`;
 
 
             const contents = [];
@@ -277,6 +336,14 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, onOpenSettings }) => {
             const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text;
             if (aiText) {
                 setResult(aiText);
+                // Add to history
+                const historyItem = {
+                    id: Date.now(),
+                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    prompt: inputText || (drawTool === 'draw' ? 'Handwritten problem' : 'Image problem'),
+                    result: aiText
+                };
+                setTutorHistory(prev => [historyItem, ...prev]);
             } else {
                 throw new Error("No response from AI.");
             }
@@ -328,12 +395,31 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, onOpenSettings }) => {
 
     // --- Helper: Atomic Token Detection (Jump over \sqrt{, \sin(, \pi, etc.) ---
     const getAtomicTokenBefore = (text, pos) => {
-        const MAX_LOOKBACK = 15;
+        const MAX_LOOKBACK = 25;
+
+        // 1. Check for specific non-backslash patterns first
+        const nonBackslashPatterns = ['^2', '^(-1)', 'dx', 'dt', 'f(x)', 'g(x)'];
+        for (const p of nonBackslashPatterns) {
+            if (text.slice(pos - p.length, pos) === p) return p;
+        }
+
+        // 2. Look back for LaTeX commands and templates
         for (let i = 1; i <= MAX_LOOKBACK; i++) {
             if (pos - i < 0) break;
             if (text[pos - i] === '\\') {
                 const candidate = text.slice(pos - i, pos);
-                // Matches \cmd, \cmd{, \cmd(, \cmd[
+
+                // Priority 1: Match complex empty templates (longest first)
+                if (/^\\[a-zA-Z]+\[\]\{\}$/.test(candidate)) return candidate;
+                if (/^\\[a-zA-Z]+\{\}\{\}$/.test(candidate)) return candidate;
+                if (/^\\[a-zA-Z]+\{\}$/.test(candidate)) return candidate;
+                if (/^\\[a-zA-Z]+\(\)$/.test(candidate)) return candidate;
+
+                // Priority 2: Match partially typed/complex starts or templates with a simple char inside
+                if (/^\\[a-zA-Z]+\[\]?\{?$/.test(candidate)) return candidate;
+                if (/^\\[a-zA-Z]+\{\}?\{?$/.test(candidate)) return candidate;
+
+                // Priority 3: Basic commands (\pi, \sin, etc.)
                 if (/^\\[a-zA-Z]+[\{\(\[]?$/.test(candidate)) {
                     return candidate;
                 }
@@ -343,9 +429,23 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, onOpenSettings }) => {
     };
 
     const getAtomicTokenAfter = (text, pos) => {
+        const remaining = text.slice(pos);
+
+        // Non-backslash targets
+        const nonBackslashPatterns = ['^2', '^(-1)', 'dx', 'dt', 'f(x)', 'g(x)'];
+        for (const p of nonBackslashPatterns) {
+            if (remaining.startsWith(p)) return p;
+        }
+
         if (text[pos] !== '\\') return null;
-        const match = text.slice(pos).match(/^(\\[a-zA-Z]+[\{\(\[]?)/);
-        return match ? match[1] : null;
+
+        // Match complex empty templates forward
+        const templateMatch = remaining.match(/^(\\[a-zA-Z]+(\[\])?(\{\})+)/);
+        if (templateMatch) return templateMatch[1];
+
+        // Basic match
+        const basicMatch = remaining.match(/^(\\[a-zA-Z]+[\{\(\[]?)/);
+        return basicMatch ? basicMatch[1] : null;
     };
 
     // --- Cursor Navigation ---
@@ -372,7 +472,7 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, onOpenSettings }) => {
     };
 
     return (
-        <div className={`w-full h-full flex flex-col relative transition-colors duration-500 ${isDarkMode ? 'bg-black text-white' : 'bg-[#f2f2f2] text-black'}`}>
+        <div ref={pageSwipeRef} className={`w-full h-full flex flex-col relative transition-colors duration-500 ${isDarkMode ? 'bg-black text-white' : 'bg-[#f2f2f2] text-black'}`}>
 
             {/* 1. Header Row */}
             <div className="h-16 flex items-center justify-between px-6 shrink-0 z-30">
@@ -384,15 +484,28 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, onOpenSettings }) => {
                         <span className={`font-bold text-lg tracking-tight ${isDarkMode ? 'text-white' : 'text-black'}`}>Jarvis Math</span>
                     </div>
                 </button>
-                <button
-                    onClick={onOpenSettings}
-                    className={`p-3 rounded-full transition-all duration-500 active:rotate-180 ${isDarkMode
-                        ? 'bg-neutral-800 text-white hover:bg-neutral-700'
-                        : 'bg-white text-black hover:bg-neutral-100 shadow-sm border border-neutral-200'
-                        }`}
-                >
-                    <Settings size={20} className="opacity-80" />
-                </button>
+                <div className="flex items-center gap-2">
+                    {drawTool !== 'type' && (
+                        <button
+                            onClick={() => setIsHistoryOpen(true)}
+                            className={`p-3 rounded-full transition-all duration-300 active:scale-95 ${isDarkMode
+                                ? 'bg-neutral-800 text-white hover:bg-neutral-700'
+                                : 'bg-white text-black hover:bg-neutral-100 shadow-sm border border-neutral-200'
+                                }`}
+                        >
+                            <History size={20} className="opacity-80" />
+                        </button>
+                    )}
+                    <button
+                        onClick={onOpenSettings}
+                        className={`p-3 rounded-full transition-all duration-500 active:rotate-180 ${isDarkMode
+                            ? 'bg-neutral-800 text-white hover:bg-neutral-700'
+                            : 'bg-white text-black hover:bg-neutral-100 shadow-sm border border-neutral-200'
+                            }`}
+                    >
+                        <Settings size={20} className="opacity-80" />
+                    </button>
+                </div>
 
             </div>
 
@@ -509,7 +622,13 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, onOpenSettings }) => {
 
                 {/* Floating Tools (Right Side) */}
                 {drawTool === 'type' && (
-                    <div className="absolute right-4 bottom-4 flex flex-col gap-3 z-20">
+                    <div className="absolute left-4 bottom-4 flex flex-row gap-3 z-20">
+                        <button
+                            onClick={() => setIsHistoryOpen(true)}
+                            className="w-12 h-12 rounded-full bg-[#1E1E1E] text-green-500 flex items-center justify-center shadow-lg border border-neutral-800 hover:scale-105 transition-transform"
+                        >
+                            <History size={20} />
+                        </button>
                         <button
                             onClick={() => setDrawTool('draw')}
                             className="w-12 h-12 rounded-full bg-[#1E1E1E] text-green-500 flex items-center justify-center shadow-lg border border-neutral-800 hover:scale-105 transition-transform"
@@ -529,117 +648,118 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, onOpenSettings }) => {
             {/* --- 3. Controls Area (Conditional) --- */}
 
             {/* A. TYPE MODE CONTROLS */}
-            {drawTool === 'type' && (
-                <div className="shrink-0 z-30 pb-4">
-                    {/* Category Tabs */}
-                    {/* Category Tabs - Fixed Layout */}
-                    <div className="flex items-center gap-2 px-4 mb-3">
-                        {/* Fixed Left Icon - Acts as '123' Tab */}
-                        <button
-                            onClick={() => setActiveMathTab('123')}
-                            className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-all ${activeMathTab === '123' ? 'bg-green-500 text-white' : 'bg-[#1E1E1E] text-green-500 hover:bg-[#333]'}`}
-                        >
-                            <Calculator size={20} />
-                        </button>
+            {
+                drawTool === 'type' && (
+                    <div className="shrink-0 z-30 pb-4">
+                        {/* Category Tabs */}
+                        {/* Category Tabs - Fixed Layout */}
+                        <div className="flex items-center gap-2 px-4 mb-3">
+                            {/* Fixed Left Icon - Acts as '123' Tab */}
+                            <button
+                                onClick={() => setActiveMathTab('123')}
+                                className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-all ${activeMathTab === '123' ? 'bg-green-500 text-white' : 'bg-[#1E1E1E] text-green-500 hover:bg-[#333]'}`}
+                            >
+                                <Calculator size={20} />
+                            </button>
 
-                        {/* Scrollable Center */}
-                        <div className="flex-1 flex items-center gap-2 overflow-x-auto scrollbar-none h-10 px-1">
-                            {Object.keys(MATHTYPE_DATA).filter(k => k !== '123').map(key => {
-                                const isActive = activeMathTab === key;
-                                return (
-                                    <button
-                                        key={key}
-                                        onClick={() => setActiveMathTab(key)}
-                                        className={`relative h-10 px-5 rounded-full text-xs font-bold tracking-wider uppercase whitespace-nowrap transition-colors flex items-center justify-center shrink-0 border z-10 ${isActive ?
-                                            'text-white border-neutral-600' :
-                                            'text-neutral-500 border-transparent hover:bg-[#1a1a1a]'}`}
-                                    >
-                                        {isActive && (
-                                            <motion.div
-                                                layoutId="activeMathTab"
-                                                className="absolute inset-0 bg-[#2A2A2A] rounded-full -z-10 shadow-md"
-                                                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                                            />
-                                        )}
-                                        <span className="relative z-20">{key}</span>
-                                    </button>
-                                );
-                            })}
+                            {/* Scrollable Center */}
+                            <div className="flex-1 flex items-center gap-2 overflow-x-auto scrollbar-none h-10 px-1">
+                                {Object.keys(MATHTYPE_DATA).filter(k => k !== '123').map(key => {
+                                    const isActive = activeMathTab === key;
+                                    return (
+                                        <button
+                                            key={key}
+                                            onClick={() => setActiveMathTab(key)}
+                                            className={`relative h-10 px-5 rounded-full text-xs font-bold tracking-wider uppercase whitespace-nowrap transition-colors flex items-center justify-center shrink-0 border z-10 ${isActive ?
+                                                'text-white border-neutral-600' :
+                                                'text-neutral-500 border-transparent hover:bg-[#1a1a1a]'}`}
+                                        >
+                                            {isActive && (
+                                                <motion.div
+                                                    layoutId="activeMathTab"
+                                                    className="absolute inset-0 bg-[#2A2A2A] rounded-full -z-10 shadow-md"
+                                                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                                />
+                                            )}
+                                            <span className="relative z-20">{key}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Divider */}
+                            <div className="w-px h-6 bg-neutral-800 shrink-0 mx-1"></div>
+
+                            {/* Fixed Right Delete Button */}
+                            <div className="shrink-0 pl-1">
+                                <button
+                                    onClick={() => handleMathTabPress({ type: 'action', action: 'delete' })}
+                                    className="w-10 h-10 flex items-center justify-center rounded-full text-red-500 hover:bg-red-500/10 active:scale-95 transition-all"
+                                >
+                                    <Delete size={22} />
+                                </button>
+                            </div>
                         </div>
 
-                        {/* Divider */}
-                        <div className="w-px h-6 bg-neutral-800 shrink-0 mx-1"></div>
-
-                        {/* Fixed Right Delete Button */}
-                        <div className="shrink-0 pl-1">
-                            <button
-                                onClick={() => handleMathTabPress({ type: 'action', action: 'delete' })}
-                                className="w-10 h-10 flex items-center justify-center rounded-full text-red-500 hover:bg-red-500/10 active:scale-95 transition-all"
+                        {/* Keypad Grid */}
+                        <AnimatePresence mode="popLayout" initial={false}>
+                            <motion.div
+                                key={activeMathTab}
+                                initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: -10, scale: 0.98 }}
+                                transition={{ duration: 0.25, ease: "easeOut" }}
+                                className="grid grid-cols-5 gap-2 px-3 mb-4 h-[272px] overflow-y-auto scrollbar-none content-start"
                             >
-                                <Delete size={22} />
+                                {MATHTYPE_DATA[activeMathTab].map((item, i) => (
+                                    <motion.button
+                                        key={`${activeMathTab}-${i}`}
+                                        onClick={() => handleMathTabPress(item)}
+                                        className={getBtnStyle(item)}
+                                        whileTap={{ scale: 0.9 }}
+                                        whileHover={{ scale: 1.05 }}
+                                        layout // layout prop helps smooth list reordering if needed
+                                    >
+                                        <MathLabel latex={item.latex} label={item.label || item.value} isReady={isKatexReady} isDarkMode={isDarkMode} />
+                                    </motion.button>
+                                ))}
+                            </motion.div>
+                        </AnimatePresence>
+
+                        {/* Bottom Action Bar (Type Mode) */}
+                        <div className="flex items-center gap-3 px-4 pt-2">
+                            {/* Left Arrow */}
+                            <button
+                                onClick={() => moveCursor('left')}
+                                className="w-12 h-12 rounded-full bg-[#1E1E1E] flex items-center justify-center text-green-500 hover:bg-[#333] active:scale-95 transition-all"
+                            >
+                                <ChevronLeft size={24} />
+                            </button>
+
+                            {/* Calculate */}
+                            <button
+                                onClick={callGemini}
+                                disabled={loading || !inputText}
+                                className={`flex-1 h-14 rounded-full bg-purple-600 hover:bg-purple-500 active:scale-95 transition-all text-white font-semibold text-lg flex items-center justify-center gap-2 shadow-lg shadow-purple-900/20`}
+                            >
+                                {loading ? <Loader2 size={24} className="animate-spin" /> : (
+                                    <>
+                                        <Sparkles size={20} fill="currentColor" />
+                                        <span>Calculate</span>
+                                    </>
+                                )}
+                            </button>
+
+                            {/* Right Arrow */}
+                            <button
+                                onClick={() => moveCursor('right')}
+                                className="w-12 h-12 rounded-full bg-[#1E1E1E] flex items-center justify-center text-green-500 hover:bg-[#333] active:scale-95 transition-all"
+                            >
+                                <ChevronRight size={24} />
                             </button>
                         </div>
-                    </div>
 
-                    {/* Keypad Grid */}
-                    <AnimatePresence mode="popLayout" initial={false}>
-                        <motion.div
-                            key={activeMathTab}
-                            initial={{ opacity: 0, y: 10, scale: 0.98 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: -10, scale: 0.98 }}
-                            transition={{ duration: 0.25, ease: "easeOut" }}
-                            className="grid grid-cols-5 gap-2 px-3 mb-4 h-[272px] overflow-y-auto scrollbar-none content-start"
-                        >
-                            {MATHTYPE_DATA[activeMathTab].map((item, i) => (
-                                <motion.button
-                                    key={`${activeMathTab}-${i}`}
-                                    onClick={() => handleMathTabPress(item)}
-                                    className={getBtnStyle(item)}
-                                    whileTap={{ scale: 0.9 }}
-                                    whileHover={{ scale: 1.05 }}
-                                    layout // layout prop helps smooth list reordering if needed
-                                >
-                                    <MathLabel latex={item.latex} label={item.label || item.value} isReady={isKatexReady} isDarkMode={isDarkMode} />
-                                </motion.button>
-                            ))}
-                        </motion.div>
-                    </AnimatePresence>
-
-                    {/* Bottom Action Bar (Type Mode) */}
-                    <div className="flex items-center gap-3 px-4 pt-2">
-                        {/* Left Arrow */}
-                        <button
-                            onClick={() => moveCursor('left')}
-                            className="w-12 h-12 rounded-full bg-[#1E1E1E] flex items-center justify-center text-green-500 hover:bg-[#333] active:scale-95 transition-all"
-                        >
-                            <ChevronLeft size={24} />
-                        </button>
-
-                        {/* Calculate */}
-                        <button
-                            onClick={callGemini}
-                            disabled={loading || !inputText}
-                            className={`flex-1 h-14 rounded-full bg-purple-600 hover:bg-purple-500 active:scale-95 transition-all text-white font-semibold text-lg flex items-center justify-center gap-2 shadow-lg shadow-purple-900/20`}
-                        >
-                            {loading ? <Loader2 size={24} className="animate-spin" /> : (
-                                <>
-                                    <Sparkles size={20} fill="currentColor" />
-                                    <span>Calculate</span>
-                                </>
-                            )}
-                        </button>
-
-                        {/* Right Arrow */}
-                        <button
-                            onClick={() => moveCursor('right')}
-                            className="w-12 h-12 rounded-full bg-[#1E1E1E] flex items-center justify-center text-green-500 hover:bg-[#333] active:scale-95 transition-all"
-                        >
-                            <ChevronRight size={24} />
-                        </button>
-                    </div>
-
-                    {/* Nav to Draw/Camera (Floating above or integrated?) - existing design had them floating right. 
+                        {/* Nav to Draw/Camera (Floating above or integrated?) - existing design had them floating right. 
                             Let's keep the existing floating tools trigger for switching TO draw mode? 
                             Actually, user wants specific design. Let's add a small toggle to switch modes if needed, 
                             but the reference image implies bottom navigation switching. 
@@ -647,79 +767,242 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, onOpenSettings }) => {
                             No, the keypad takes space. 
                             I'll leave the floating tools in the Display Area (lines 368-378) for switching from Type -> Draw.
                         */}
-                </div>
-            )}
+                    </div>
+                )
+            }
 
             {/* B. DRAW & IMAGE MODE CONTROLS */}
-            {(drawTool === 'draw' || drawTool === 'image') && (
-                <div className="shrink-0 z-30 pb-6 pt-2 relative">
+            {
+                (drawTool === 'draw' || drawTool === 'image') && (
+                    <div className="shrink-0 z-30 pb-6 pt-2 relative">
 
-                    {/* Floating Tool Palette (Only for Draw) */}
-                    {drawTool === 'draw' && (
-                        <div className="absolute -top-16 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-[#1E1E1E] rounded-full p-1.5 shadow-xl border border-neutral-800">
-                            <button
-                                onClick={() => setDrawingMode('pen')}
-                                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${drawingMode === 'pen' ? 'bg-green-500 text-white shadow-lg' : 'text-neutral-400 hover:text-white'}`}
+                        {/* Floating Tool Palette (Only for Draw) */}
+                        {drawTool === 'draw' && (
+                            <div className="absolute -top-16 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-[#1E1E1E] rounded-full p-1.5 shadow-xl border border-neutral-800">
+                                <button
+                                    onClick={() => setDrawingMode('pen')}
+                                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${drawingMode === 'pen' ? 'bg-green-500 text-white shadow-lg' : 'text-neutral-400 hover:text-white'}`}
+                                >
+                                    <PenTool size={18} />
+                                </button>
+                                <button
+                                    onClick={() => setDrawingMode('eraser')}
+                                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${drawingMode === 'eraser' ? 'bg-neutral-700 text-white' : 'text-neutral-400 hover:text-white'}`}
+                                >
+                                    <Eraser size={18} />
+                                </button>
+                                <div className="w-px h-6 bg-neutral-700 mx-1"></div>
+                                <button
+                                    onClick={clearCanvas}
+                                    className="w-10 h-10 rounded-full flex items-center justify-center text-red-500 hover:bg-red-500/10 transition-all"
+                                >
+                                    <Trash2 size={18} />
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Navigation Bottom Bar */}
+                        <div className="flex items-center gap-4 px-6">
+                            {/* Left: Keyboard (Type Mode) */}
+                            <motion.button
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => setDrawTool('type')}
+                                className="w-12 h-12 rounded-full bg-[#1E1E1E] flex items-center justify-center text-neutral-400 hover:text-white hover:bg-[#333] transition-all"
                             >
-                                <PenTool size={18} />
-                            </button>
-                            <button
-                                onClick={() => setDrawingMode('eraser')}
-                                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${drawingMode === 'eraser' ? 'bg-neutral-700 text-white' : 'text-neutral-400 hover:text-white'}`}
+                                <Keyboard size={24} />
+                            </motion.button>
+
+                            {/* Center: Calculate */}
+                            <motion.button
+                                whileTap={{ scale: 0.98 }}
+                                onClick={callGemini}
+                                disabled={loading || (drawTool === 'draw' && !canvasRef.current) || (drawTool === 'image' && !selectedImage && !canvasRef.current)}
+                                className="flex-1 h-16 rounded-full bg-purple-600 hover:bg-purple-500 active:scale-95 transition-all text-white font-bold text-xl flex items-center justify-center gap-2 shadow-lg shadow-purple-900/30"
                             >
-                                <Eraser size={18} />
-                            </button>
-                            <div className="w-px h-6 bg-neutral-700 mx-1"></div>
-                            <button
-                                onClick={clearCanvas}
-                                className="w-10 h-10 rounded-full flex items-center justify-center text-red-500 hover:bg-red-500/10 transition-all"
+                                {loading ? <Loader2 size={24} className="animate-spin" /> : "Calculate"}
+                            </motion.button>
+
+                            {/* Right: Draw/Image Toggle */}
+                            <motion.button
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => setDrawTool(drawTool === 'draw' ? 'image' : 'draw')}
+                                className="w-12 h-12 rounded-full bg-[#1E1E1E] flex items-center justify-center text-neutral-400 hover:text-white hover:bg-[#333] transition-all"
                             >
-                                <Trash2 size={18} />
-                            </button>
+                                {drawTool === 'draw' ? <Camera size={24} /> : <PenTool size={24} />}
+                            </motion.button>
                         </div>
+                    </div>
+                )
+            }
+
+            {/* Scrim Overlay for History */}
+            <AnimatePresence>
+                {isHistoryOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setIsHistoryOpen(false)}
+                        className="absolute inset-0 bg-black/40 backdrop-blur-[2px] z-40"
+                    />
+                )}
+            </AnimatePresence>
+
+            {/* 4. Overlay Views: History View Sheet */}
+            <motion.div
+                initial={{ y: '100%' }}
+                animate={isHistoryOpen
+                    ? { y: isHistoryExpanded ? 0 : '50%' }
+                    : { y: '100%' }
+                }
+                transition={{ type: "spring", damping: 45, stiffness: 200, mass: 1.2 }}
+                drag={isHistoryOpen ? "y" : false}
+                dragControls={historyDragControls}
+                dragListener={false}
+                dragConstraints={{ top: 0 }}
+                dragElastic={0.1}
+                dragSnapToOrigin
+                onDragEnd={(e, info) => {
+                    const velocity = info.velocity.y;
+                    const offset = info.offset.y;
+
+                    if (isHistoryExpanded) {
+                        if (offset > 150 || velocity > 600) {
+                            setIsHistoryExpanded(false);
+                        }
+                    } else {
+                        if (offset < -100 || velocity < -300) {
+                            setIsHistoryExpanded(true);
+                        } else if (offset > 100 || velocity > 400) {
+                            setIsHistoryOpen(false);
+                        }
+                    }
+                }}
+                className={`absolute inset-x-0 bottom-0 z-50 flex flex-col rounded-t-[2rem] shadow-[0_-10px_40px_rgba(0,0,0,0.5)] ${isDarkMode ? 'bg-[#181818] text-white' : 'bg-white text-black'}`}
+                style={{ height: '85%' }}
+            >
+                {/* Drag Handle */}
+                <div
+                    className="flex justify-center pt-3 pb-4 cursor-grab active:cursor-grabbing touch-none"
+                    onPointerDown={(e) => historyDragControls.start(e)}
+                >
+                    <div className="w-10 h-1.5 rounded-full bg-neutral-300 dark:bg-neutral-600" />
+                </div>
+
+                <div className="h-12 flex items-center justify-between px-6 border-b border-neutral-100 dark:border-neutral-800 shrink-0">
+                    <span className="font-semibold text-lg">History</span>
+                    <button onClick={() => setIsHistoryOpen(false)} className="p-2 rounded-full bg-neutral-100 dark:bg-neutral-800 hover:opacity-80">
+                        <X size={20} />
+                    </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 scrollbar-none">
+                    {tutorHistory.length === 0 ? (
+                        <div className="h-full flex flex-col items-center justify-center text-neutral-500 gap-2 opacity-50 pb-12">
+                            <History size={48} />
+                            <p>No solution history yet</p>
+                        </div>
+                    ) : (
+                        tutorHistory.map((item) => (
+                            <button
+                                key={item.id}
+                                onClick={() => {
+                                    setResult(item.result);
+                                    setIsAiTutorOpen(true);
+                                    setIsHistoryOpen(false); // Close history when opening result
+                                }}
+                                className={`w-full p-4 rounded-2xl flex flex-col gap-2 text-left transition-all active:scale-[0.98] ${isDarkMode ? 'bg-[#222] hover:bg-[#2a2a2a]' : 'bg-white shadow-sm border border-neutral-100 hover:border-green-300'}`}
+                            >
+                                <div className="flex justify-between items-start">
+                                    <span className="text-xs font-bold text-green-500 uppercase tracking-wider">{item.timestamp}</span>
+                                </div>
+                                <div className="font-medium line-clamp-2 text-neutral-400">
+                                    <MathLabel
+                                        latex={item.prompt.includes('\\') || item.prompt.includes('%') ? item.prompt.replace(/%/g, '\\%') : null}
+                                        label={item.prompt}
+                                        isReady={isKatexReady}
+                                        isDarkMode={isDarkMode}
+                                    />
+                                </div>
+                            </button>
+                        ))
                     )}
+                </div>
 
-                    {/* Navigation Bottom Bar */}
-                    <div className="flex items-center gap-4 px-6">
-                        {/* Left: Keyboard (Type Mode) */}
+                {/* Floating Delete Pill */}
+                {tutorHistory.length > 0 && (
+                    <div className="absolute bottom-6 inset-x-0 flex justify-center z-10 pointer-events-none">
                         <button
-                            onClick={() => setDrawTool('type')}
-                            className="w-12 h-12 rounded-full bg-[#1E1E1E] flex items-center justify-center text-neutral-400 hover:text-white hover:bg-[#333] transition-all"
+                            onClick={() => {
+                                if (window.confirm('Clear all AI Tutor history?')) {
+                                    setTutorHistory([]);
+                                }
+                            }}
+                            className="pointer-events-auto flex items-center gap-2 px-5 py-2.5 rounded-full bg-red-500 text-white text-sm font-medium shadow-lg shadow-red-500/30 hover:bg-red-600 active:scale-95 transition-all"
                         >
-                            <Keyboard size={24} />
-                        </button>
-
-                        {/* Center: Calculate */}
-                        <button
-                            onClick={callGemini}
-                            disabled={loading || (drawTool === 'draw' && !canvasRef.current) || (drawTool === 'image' && !selectedImage && !canvasRef.current)} // Simplified check
-                            className="flex-1 h-16 rounded-full bg-purple-600 hover:bg-purple-500 active:scale-95 transition-all text-white font-bold text-xl flex items-center justify-center gap-2 shadow-lg shadow-purple-900/30"
-                        >
-                            {loading ? <Loader2 size={24} className="animate-spin" /> : "Calculate"}
-                        </button>
-
-                        {/* Right: Camera (Image Mode) */}
-                        {/* Right: Toggle Draw/Image */}
-                        <button
-                            onClick={() => setDrawTool(drawTool === 'draw' ? 'image' : 'draw')}
-                            className="w-12 h-12 rounded-full bg-[#1E1E1E] flex items-center justify-center text-neutral-400 hover:text-white hover:bg-[#333] transition-all"
-                        >
-                            {drawTool === 'draw' ? <Camera size={24} /> : <PenTool size={24} />}
+                            <Trash2 size={16} />
+                            Clear History
                         </button>
                     </div>
-                </div>
-            )}
+                )}
+            </motion.div>
+
+            {/* Scrim Overlay for Solution */}
+            <AnimatePresence>
+                {isAiTutorOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setIsAiTutorOpen(false)}
+                        className="absolute inset-0 bg-black/40 backdrop-blur-[2px] z-40 transition-all duration-500"
+                    />
+                )}
+            </AnimatePresence>
 
             {/* Solution Sheet Overlay */}
             <motion.div
                 initial={{ y: '100%' }}
-                animate={{ y: isAiTutorOpen ? '0%' : '100%' }}
-                transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                animate={isAiTutorOpen
+                    ? { y: isAiTutorExpanded ? 0 : '50%' }
+                    : { y: '100%' }
+                }
+                transition={{ type: "spring", damping: 45, stiffness: 200, mass: 1.2 }}
+                drag={isAiTutorOpen ? "y" : false}
+                dragControls={solutionDragControls}
+                dragListener={false}
+                dragConstraints={{ top: 0 }}
+                dragElastic={0.1}
+                dragSnapToOrigin
+                onDragEnd={(e, info) => {
+                    const velocity = info.velocity.y;
+                    const offset = info.offset.y;
+
+                    if (isAiTutorExpanded) {
+                        if (offset > 150 || velocity > 600) {
+                            setIsAiTutorExpanded(false);
+                        }
+                    } else {
+                        if (offset < -100 || velocity < -300) {
+                            setIsAiTutorExpanded(true);
+                        } else if (offset > 100 || velocity > 400) {
+                            setIsAiTutorOpen(false);
+                        }
+                    }
+                }}
                 className={`absolute inset-x-0 bottom-0 bg-white dark:bg-[#181818] rounded-t-[2rem] shadow-[0_-10px_40px_rgba(0,0,0,0.5)] flex flex-col z-50`}
                 style={{ height: '90%' }}
             >
+                {/* Drag Handle */}
                 <div
-                    className="h-16 flex items-center justify-between px-6 border-b border-neutral-100 dark:border-neutral-800 shrink-0 cursor-pointer"
+                    className="flex justify-center pt-3 pb-4 cursor-grab active:cursor-grabbing touch-none"
+                    onPointerDown={(e) => solutionDragControls.start(e)}
+                >
+                    <div className="w-10 h-1.5 rounded-full bg-neutral-300 dark:bg-neutral-600" />
+                </div>
+
+                <div
+                    className="h-12 flex items-center justify-between px-6 border-b border-neutral-100 dark:border-neutral-800 shrink-0 cursor-pointer"
                     onClick={() => setIsAiTutorOpen(false)}
                 >
                     <span className="font-semibold text-lg text-neutral-800 dark:text-neutral-200">Solution</span>
@@ -728,7 +1011,7 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, onOpenSettings }) => {
                     </button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-6">
+                <div ref={solutionScrollRef} className="flex-1 overflow-y-auto p-6">
                     {loading ? (
                         <div className="flex flex-col items-center justify-center h-full gap-4 text-neutral-400">
                             <Loader2 size={48} className="animate-spin text-purple-500" />
@@ -746,7 +1029,7 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, onOpenSettings }) => {
                 </div>
             </motion.div>
 
-        </div>
+        </div >
     );
 };
 

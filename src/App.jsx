@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import SimpleCalculatorPage from './components/SimpleCalculatorPage';
 import AiTutorPage from './components/AiTutorPage';
 import SettingsModal from './components/SettingsModal';
+import PracticeMode from './components/PracticeMode';
+import useSwipeGesture from './hooks/useSwipeGesture';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // --- Error Boundary ---
 class ErrorBoundary extends React.Component {
@@ -27,13 +30,29 @@ class ErrorBoundary extends React.Component {
 
 // --- Main Root Component ---
 export default function GeminiMathTutor() {
-    const [isSimpleCalculator, setIsSimpleCalculator] = useState(true);
+    const [activeView, setActiveView] = useState('calculator'); // 'calculator' | 'tutor' | 'practice'
     const [isDarkMode, setIsDarkMode] = useState(true);
+
+    // Swipe gestures for sub-views to go back to calculator (Universal Back)
+    const { ref: tutorSwipeRef } = useSwipeGesture({
+        direction: 'horizontal',
+        onSwipe: () => setActiveView('calculator'),
+        enabled: activeView === 'tutor',
+    });
+    const { ref: practiceSwipeRef } = useSwipeGesture({
+        direction: 'horizontal',
+        onSwipe: () => setActiveView('calculator'),
+        enabled: activeView === 'practice',
+    });
 
     // Settings State
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [apiKey, setApiKey] = useState(() => {
         return localStorage.getItem('gemini_api_key') || import.meta.env.VITE_GEMINI_API_KEY || '';
+    });
+    // Lifted Model Name State (Default to constant, but can be changed)
+    const [modelName, setModelName] = useState(() => {
+        return localStorage.getItem('gemini_model_name') || 'gemini-1.5-flash';
     });
 
     const toggleTheme = () => setIsDarkMode(!isDarkMode);
@@ -41,6 +60,44 @@ export default function GeminiMathTutor() {
     const handleSaveApiKey = (key) => {
         setApiKey(key);
         localStorage.setItem('gemini_api_key', key);
+    };
+
+    const handleSaveModelName = (model) => {
+        setModelName(model);
+        localStorage.setItem('gemini_model_name', model);
+    };
+
+    const pageVariants = {
+        initial: (direction) => ({
+            x: direction > 0 ? '100%' : '-100%',
+            opacity: 0,
+        }),
+        animate: {
+            x: 0,
+            opacity: 1,
+            transition: {
+                type: 'spring',
+                damping: 45,
+                stiffness: 200,
+                mass: 1.2,
+            },
+        },
+        exit: (direction) => ({
+            x: direction < 0 ? '100%' : '-100%',
+            opacity: 0,
+            transition: {
+                type: 'spring',
+                damping: 45,
+                stiffness: 200,
+                mass: 1.2,
+            },
+        }),
+    };
+
+    // Track direction for slide (Tutor/Practice are to the right of Calculator)
+    const getDirection = () => {
+        if (activeView === 'calculator') return -1;
+        return 1;
     };
 
     return (
@@ -55,32 +112,71 @@ export default function GeminiMathTutor() {
                     toggleTheme={toggleTheme}
                     apiKey={apiKey}
                     onSaveApiKey={handleSaveApiKey}
+                    modelName={modelName}
+                    onSaveModelName={handleSaveModelName}
                 />
 
-                {/* 1. Simple Calculator View */}
-                <div
-                    className={`absolute inset-0 transition-transform duration-500 ease-in-out z-10 ${!isSimpleCalculator ? '-translate-x-full opacity-0 pointer-events-none' : 'translate-x-0 opacity-100'}`}
-                >
-                    <SimpleCalculatorPage
-                        onSwitch={() => setIsSimpleCalculator(false)}
-                        isDarkMode={isDarkMode}
-                        onOpenSettings={() => setIsSettingsOpen(true)}
-                    />
-                </div>
-
-                {/* 2. AI Tutor View */}
-                <div
-                    className={`absolute inset-0 transition-transform duration-500 ease-in-out z-20 ${isSimpleCalculator ? 'translate-x-full opacity-0 pointer-events-none' : 'translate-x-0 opacity-100'}`}
-                >
-                    {!isSimpleCalculator && (
-                        <AiTutorPage
-                            onBack={() => setIsSimpleCalculator(true)}
-                            isDarkMode={isDarkMode}
-                            apiKey={apiKey}
-                            onOpenSettings={() => setIsSettingsOpen(true)}
-                        />
+                <AnimatePresence initial={false} custom={getDirection()}>
+                    {activeView === 'calculator' && (
+                        <motion.div
+                            key="calculator"
+                            custom={getDirection()}
+                            variants={pageVariants}
+                            initial="initial"
+                            animate="animate"
+                            exit="exit"
+                            className="absolute inset-0 z-10"
+                        >
+                            <SimpleCalculatorPage
+                                onSwitchToTutor={() => setActiveView('tutor')}
+                                onSwitchToPractice={() => setActiveView('practice')}
+                                isDarkMode={isDarkMode}
+                                onOpenSettings={() => setIsSettingsOpen(true)}
+                            />
+                        </motion.div>
                     )}
-                </div>
+
+                    {activeView === 'tutor' && (
+                        <motion.div
+                            key="tutor"
+                            ref={tutorSwipeRef}
+                            custom={getDirection()}
+                            variants={pageVariants}
+                            initial="initial"
+                            animate="animate"
+                            exit="exit"
+                            className="absolute inset-0 z-20"
+                        >
+                            <AiTutorPage
+                                onBack={() => setActiveView('calculator')}
+                                isDarkMode={isDarkMode}
+                                apiKey={apiKey}
+                                modelName={modelName}
+                                onOpenSettings={() => setIsSettingsOpen(true)}
+                            />
+                        </motion.div>
+                    )}
+
+                    {activeView === 'practice' && (
+                        <motion.div
+                            key="practice"
+                            ref={practiceSwipeRef}
+                            custom={getDirection()}
+                            variants={pageVariants}
+                            initial="initial"
+                            animate="animate"
+                            exit="exit"
+                            className="absolute inset-0 z-20"
+                        >
+                            <PracticeMode
+                                onBack={() => setActiveView('calculator')}
+                                apiKey={apiKey}
+                                modelName={modelName}
+                                isDarkMode={isDarkMode}
+                            />
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
             </div>
         </ErrorBoundary>

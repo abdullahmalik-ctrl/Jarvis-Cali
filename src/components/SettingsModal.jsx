@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { X, Moon, Sun, Key, HelpCircle, ExternalLink, Check, Download } from 'lucide-react';
+import { motion } from 'framer-motion';
 
-const SettingsModal = ({ isOpen, onClose, isDarkMode, toggleTheme, apiKey, onSaveApiKey }) => {
+const SettingsModal = ({ isOpen, onClose, isDarkMode, toggleTheme, apiKey, onSaveApiKey, modelName, onSaveModelName }) => {
     const [keyInput, setKeyInput] = useState(apiKey);
     const [showHelp, setShowHelp] = useState(false);
     const [deferredPrompt, setDeferredPrompt] = useState(null);
+    const [availableModels, setAvailableModels] = useState([]);
+    const [isLoadingModels, setIsLoadingModels] = useState(false);
+    const [fetchError, setFetchError] = useState(null);
+    const [selectedModel, setSelectedModel] = useState(modelName);
 
     useEffect(() => {
         const handler = (e) => {
@@ -15,6 +20,50 @@ const SettingsModal = ({ isOpen, onClose, isDarkMode, toggleTheme, apiKey, onSav
         return () => window.removeEventListener('beforeinstallprompt', handler);
     }, []);
 
+    // Sync props to state when modal opens
+    useEffect(() => {
+        if (isOpen) {
+            setKeyInput(apiKey);
+            setSelectedModel(modelName);
+            if (apiKey) {
+                fetchModels(apiKey);
+            }
+        }
+    }, [isOpen, apiKey, modelName]);
+
+    const fetchModels = async (key) => {
+        if (!key) return;
+        setIsLoadingModels(true);
+        setFetchError(null);
+        try {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
+            const data = await response.json();
+            if (data.error) throw new Error(data.error.message);
+
+            // Filter for models that support 'generateContent'
+            const models = data.models?.filter(m =>
+                m.supportedGenerationMethods?.includes('generateContent')
+            ).map(m => m.name.replace('models/', '')) || [];
+
+            setAvailableModels(models);
+
+            // Auto-select if current selection is invalid
+            if (models.length > 0 && !models.includes(selectedModel)) {
+                // Prefer 'gemini-1.5-flash' or 'pro' if available
+                const best = models.find(m => m.includes('gemini-1.5-flash')) ||
+                    models.find(m => m.includes('gemini-1.5-pro')) ||
+                    models[0];
+                setSelectedModel(best);
+            }
+        } catch (err) {
+            console.error("Failed to fetch models", err);
+            setFetchError("Could not fetch models. Check API Key.");
+            // Fallback to manual entry or keep existing
+        } finally {
+            setIsLoadingModels(false);
+        }
+    };
+
     const handleInstall = async () => {
         if (!deferredPrompt) return;
         deferredPrompt.prompt();
@@ -24,26 +73,59 @@ const SettingsModal = ({ isOpen, onClose, isDarkMode, toggleTheme, apiKey, onSav
         }
     };
 
-    if (!isOpen) return null;
-
     const handleSave = () => {
         onSaveApiKey(keyInput);
+        if (selectedModel) {
+            onSaveModelName(selectedModel);
+        }
         onClose();
     };
 
+    if (!isOpen) return null;
+
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className={`w-full max-w-md rounded-3xl shadow-2xl overflow-hidden transition-colors ${isDarkMode ? 'bg-[#181818] text-white' : 'bg-white text-black'}`}>
+        <motion.div
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+        >
+            <motion.div
+                className={`w-full max-w-md rounded-3xl shadow-2xl overflow-hidden transition-colors flex flex-col max-h-[90vh] ${isDarkMode ? 'bg-[#181818] text-white' : 'bg-white text-black'}`}
+                initial={{ y: 100, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: 100, opacity: 0 }}
+                transition={{ type: 'spring', damping: 45, stiffness: 200, mass: 1.2 }}
+                drag="y"
+                dragConstraints={{ top: 0 }}
+                dragElastic={{ top: 0.05 }}
+                dragSnapToOrigin
+                onDragEnd={(e, info) => {
+                    if (info.offset.y > 120 || info.velocity.y > 300) {
+                        onClose();
+                    }
+                }}
+                onClick={(e) => e.stopPropagation()}
+            >
+                {/* Drag Handle */}
+                <div className="flex justify-center pt-3 pb-1 cursor-grab active:cursor-grabbing">
+                    <div className="w-10 h-1.5 rounded-full bg-neutral-300 dark:bg-neutral-600" />
+                </div>
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 pb-4">
+                <div className="flex items-center justify-between p-6 pb-4 shrink-0">
                     <h2 className="text-2xl font-semibold">Settings</h2>
-                    <button onClick={onClose} className={`p-2 rounded-full hover:bg-neutral-500/10 transition-colors`}>
+                    <motion.button
+                        whileTap={{ scale: 0.9 }}
+                        onClick={onClose}
+                        className={`p-2 rounded-full hover:bg-neutral-500/10 transition-colors`}
+                    >
                         <X size={24} />
-                    </button>
+                    </motion.button>
                 </div>
 
-                {/* Content */}
-                <div className="p-6 pt-2 flex flex-col gap-8">
+                {/* Content - Scrollable */}
+                <div className="p-6 pt-2 flex flex-col gap-8 overflow-y-auto custom-scrollbar">
 
                     {/* Theme Section */}
                     <div className="flex items-center justify-between">
@@ -58,12 +140,19 @@ const SettingsModal = ({ isOpen, onClose, isDarkMode, toggleTheme, apiKey, onSav
                                 </p>
                             </div>
                         </div>
-                        <button
+                        <motion.button
+                            whileTap={{ scale: 0.95 }}
                             onClick={toggleTheme}
                             className={`relative w-14 h-8 rounded-full transition-colors duration-300 ${isDarkMode ? 'bg-green-500' : 'bg-neutral-300'}`}
                         >
-                            <div className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-300 ${isDarkMode ? 'left-7' : 'left-1'}`} />
-                        </button>
+                            <motion.div
+                                className="absolute top-1 w-6 h-6 bg-white rounded-full shadow-md"
+                                animate={{ x: isDarkMode ? 24 : 0 }}
+                                initial={false}
+                                transition={{ type: 'spring', damping: 30, stiffness: 200 }}
+                                style={{ left: '4px' }}
+                            />
+                        </motion.button>
                     </div>
 
                     <hr className={`${isDarkMode ? 'border-neutral-800' : 'border-neutral-100'}`} />
@@ -114,6 +203,7 @@ const SettingsModal = ({ isOpen, onClose, isDarkMode, toggleTheme, apiKey, onSav
                                 type="password"
                                 value={keyInput}
                                 onChange={(e) => setKeyInput(e.target.value)}
+                                onBlur={() => fetchModels(keyInput)}
                                 placeholder="Enter your API Key..."
                                 className={`w-full px-4 py-3 rounded-xl border outline-none transition-all placeholder:font-normal font-mono text-sm
                                     ${isDarkMode
@@ -123,6 +213,44 @@ const SettingsModal = ({ isOpen, onClose, isDarkMode, toggleTheme, apiKey, onSav
                             />
                         </div>
                     </div>
+
+                    {/* Model Selection Section */}
+                    <div className="flex flex-col gap-2">
+                        <label className={`text-sm font-medium ${isDarkMode ? 'text-neutral-400' : 'text-neutral-600'}`}>
+                            AI Model
+                        </label>
+                        <div className="relative">
+                            <select
+                                value={selectedModel}
+                                onChange={(e) => setSelectedModel(e.target.value)}
+                                disabled={isLoadingModels}
+                                className={`w-full px-4 py-3 rounded-xl border outline-none appearance-none transition-all text-sm
+                                    ${isDarkMode
+                                        ? 'bg-[#222] border-neutral-700 focus:border-green-500 text-white'
+                                        : 'bg-neutral-50 border-neutral-200 focus:border-green-500 text-black'
+                                    }`}
+                            >
+                                {availableModels.length > 0 ? (
+                                    availableModels.map(model => (
+                                        <option key={model} value={model}>{model}</option>
+                                    ))
+                                ) : (
+                                    <option value={selectedModel}>{selectedModel} (Default)</option>
+                                )}
+                            </select>
+
+                            {isLoadingModels && (
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                    <div className="w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+                                </div>
+                            )}
+                        </div>
+                        {fetchError && <p className="text-red-500 text-xs">{fetchError}</p>}
+                        <p className="text-xs text-neutral-500">
+                            Auto-detected from API Key.
+                        </p>
+                    </div>
+
 
                     {/* Install App Section (Only if installable) */}
                     {deferredPrompt && (
@@ -154,7 +282,7 @@ const SettingsModal = ({ isOpen, onClose, isDarkMode, toggleTheme, apiKey, onSav
 
 
                 {/* Footer */}
-                <div className={`p-6 border-t ${isDarkMode ? 'border-neutral-800' : 'border-neutral-100'}`}>
+                <div className={`p-6 border-t ${isDarkMode ? 'border-neutral-800' : 'border-neutral-100'} shrink-0`}>
                     <button
                         onClick={handleSave}
                         className="w-full py-3.5 bg-green-500 hover:bg-green-600 text-white font-medium rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-green-500/20 active:scale-[0.98]"
@@ -163,8 +291,8 @@ const SettingsModal = ({ isOpen, onClose, isDarkMode, toggleTheme, apiKey, onSav
                         Save Changes
                     </button>
                 </div>
-            </div>
-        </div>
+            </motion.div>
+        </motion.div>
     );
 };
 
