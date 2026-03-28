@@ -5,7 +5,8 @@
   "type": "module",
   "homepage": "https://abdullahmalik-ctrl.github.io/Jarvis-Cali",
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently \"npm run server\" \"vite\"",
+    "server": "node server/index.js",
     "build": "vite build",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
@@ -13,6 +14,8 @@
     "deploy": "gh-pages -d dist"
   },
   "dependencies": {
+      "dotenv": "^16.6.1",
+      "express": "^4.21.2",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^8.18.0",
     "framer-motion": "^12.29.0",
@@ -31,6 +34,7 @@
     "@types/react-dom": "^18.2.17",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.16",
+    "concurrently": "^9.2.1",
     "eslint": "^8.55.0",
     "eslint-plugin-react": "^7.33.2",
     "eslint-plugin-react-hooks": "^4.6.0",

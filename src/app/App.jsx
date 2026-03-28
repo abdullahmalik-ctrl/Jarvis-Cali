@@ -32,7 +32,6 @@ class ErrorBoundary extends React.Component {
 export default function GeminiMathTutor() {
     const [activeView, setActiveView] = useState('calculator'); // 'calculator' | 'tutor' | 'practice'
     const [isDarkMode, setIsDarkMode] = useState(true);
-    const envApiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
 
     // Swipe gestures for sub-views to go back to calculator (Universal Back)
     const { ref: tutorSwipeRef } = useSwipeGesture({
@@ -49,7 +48,6 @@ export default function GeminiMathTutor() {
     // Settings State
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [userApiKey, setUserApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
-    const effectiveApiKey = userApiKey || envApiKey;
     // Lifted Model Name State (Default to constant, but can be changed)
     const [modelName, setModelName] = useState(() => {
         return localStorage.getItem('gemini_model_name') || 'gemini-1.5-flash';
@@ -117,7 +115,6 @@ export default function GeminiMathTutor() {
                     isDarkMode={isDarkMode}
                     toggleTheme={toggleTheme}
                     userApiKey={userApiKey}
-                    effectiveApiKey={effectiveApiKey}
                     onSaveApiKey={handleSaveApiKey}
                     modelName={modelName}
                     onSaveModelName={handleSaveModelName}
@@ -157,7 +154,7 @@ export default function GeminiMathTutor() {
                             <AiTutorPage
                                 onBack={() => setActiveView('calculator')}
                                 isDarkMode={isDarkMode}
-                                apiKey={effectiveApiKey}
+                                apiKey={userApiKey}
                                 modelName={modelName}
                                 onOpenSettings={() => setIsSettingsOpen(true)}
                             />
@@ -177,7 +174,7 @@ export default function GeminiMathTutor() {
                         >
                             <PracticeMode
                                 onBack={() => setActiveView('calculator')}
-                                apiKey={effectiveApiKey}
+                                apiKey={userApiKey}
                                 modelName={modelName}
                                 isDarkMode={isDarkMode}
                             />

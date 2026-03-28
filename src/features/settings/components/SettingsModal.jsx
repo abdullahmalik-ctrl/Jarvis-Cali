@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import useDebouncedValue from '@features/settings/hooks/useDebouncedValue';
 import { fetchAvailableGeminiModels } from '@features/settings/services/geminiModelsService';
 
-const SettingsModal = ({ isOpen, onClose, isDarkMode, toggleTheme, userApiKey, effectiveApiKey, onSaveApiKey, modelName, onSaveModelName }) => {
+const SettingsModal = ({ isOpen, onClose, isDarkMode, toggleTheme, userApiKey, onSaveApiKey, modelName, onSaveModelName }) => {
     const [keyInput, setKeyInput] = useState(userApiKey);
     const [showHelp, setShowHelp] = useState(false);
     const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -28,20 +28,15 @@ const SettingsModal = ({ isOpen, onClose, isDarkMode, toggleTheme, userApiKey, e
         if (isOpen) {
             setKeyInput(userApiKey);
             setSelectedModel(modelName);
-            if (effectiveApiKey) {
-                fetchModels(effectiveApiKey, modelName);
-            }
+            fetchModels(userApiKey, modelName);
         }
-    }, [isOpen, userApiKey, effectiveApiKey, modelName]);
+    }, [isOpen, userApiKey, modelName]);
 
     useEffect(() => {
         if (!isOpen) return;
 
-        const verifyKey = debouncedKeyInput.trim() || effectiveApiKey;
-        if (!verifyKey) return;
-
-        fetchModels(verifyKey, selectedModel);
-    }, [debouncedKeyInput, effectiveApiKey, isOpen]);
+        fetchModels(debouncedKeyInput.trim(), selectedModel);
+    }, [debouncedKeyInput, isOpen]);
 
     const fetchModels = async (key, currentModel = selectedModel) => {
         if (!key) return;
@@ -216,9 +211,9 @@ const SettingsModal = ({ isOpen, onClose, isDarkMode, toggleTheme, userApiKey, e
                                     }`}
                             />
                         </div>
-                        {!userApiKey && effectiveApiKey && (
+                        {!userApiKey && (
                             <p className="text-xs text-neutral-500">
-                                Using default key from environment.
+                                Using secure server default key.
                             </p>
                         )}
                     </div>

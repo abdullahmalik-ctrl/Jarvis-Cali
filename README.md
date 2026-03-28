@@ -7,6 +7,8 @@ The project is organized with a feature-first architecture for scalability and c
 
 ```text
 jarvis-cali/
+├── server/
+│   └── index.js                                   # Secure Gemini proxy API (server-side key)
 ├── src/
 │   ├── app/
 │   │   └── App.jsx                                # App shell + view switching + global state
@@ -92,7 +94,7 @@ cp .env.example .env
 3. Add your Gemini API key in `.env`:
 
 ```env
-VITE_GEMINI_API_KEY=your_api_key_here
+GEMINI_API_KEY=your_api_key_here
 ```
 
 4. Start the dev server:
@@ -119,13 +121,13 @@ npm run preview
 
 API key resolution priority:
 
-1. User-saved key from Settings (stored in localStorage)
-2. `VITE_GEMINI_API_KEY` from `.env`
+1. User-saved key from Settings (optional override)
+2. `GEMINI_API_KEY` on backend server (`.env`)
 
 Notes:
 
-- 🔒 Settings does not display the fallback environment key.
-- 🔁 If user clears their custom key, app falls back to `.env` key.
+- 🔒 The default key stays server-side and is never bundled into frontend code.
+- 🔁 If user clears their custom key, requests use secure server default key.
 
 ## ✨ Key Features
 
@@ -167,7 +169,7 @@ Notes:
 ### ⚙️ Settings & PWA Feature
 
 - Save personal Gemini API key override.
-- Auto-detect available Gemini models from active API key.
+- Auto-detect available Gemini models via secure backend proxy.
 - Select and persist preferred model.
 - Theme toggling.
 - Progressive Web App install prompt integration when available.
@@ -180,6 +182,7 @@ Notes:
   - `hooks` for reusable state logic
   - `services` for IO/API and persistence logic
 - Shared cross-domain layer in `src/shared`.
+- Backend proxy layer in `server/index.js` for secure Gemini communication.
 - Import aliases for clean paths:
   - `@app`
   - `@features`
@@ -188,7 +191,8 @@ Notes:
 
 ## 📜 Scripts
 
-- `npm run dev` - start Vite dev server 🚀
+- `npm run dev` - run proxy server + Vite together 🚀
+- `npm run server` - run secure proxy server only 🔐
 - `npm run build` - create production bundle 🏗️
 - `npm run preview` - preview production build locally 👀
 - `npm run lint` - run ESLint 🧹
