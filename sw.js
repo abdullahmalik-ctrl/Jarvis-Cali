@@ -1,4 +1,4 @@
-const CACHE_NAME = 'jarvis-math-v4';
+const CACHE_NAME = 'jarvis-math-v5';
 const urlsToCache = [
     './',
     './index.html',
@@ -48,6 +48,6 @@ self.addEventListener('activate', (event) => {
                     }
                 })
             );
-        })
+        }).then(() => self.clients.claim())
     );
 });
