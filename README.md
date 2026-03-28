@@ -1,1 +1,238 @@
-# Jarvis-Cali
+# Jarvis-Cali React - Multi-File Structure
+
+A modern, mobile-friendly math suite built with React, Vite, and Tailwind CSS.
+The project is organized with a feature-first architecture for scalability and clean ownership.
+
+## Project Structure
+
+```text
+jarvis-cali/
+├── src/
+│   ├── app/
+│   │   └── App.jsx                                # App shell + view switching + global state
+│   ├── features/
+│   │   ├── calculator/
+│   │   │   ├── components/
+│   │   │   │   ├── SimpleCalculatorPage.jsx       # Main calculator UI + modes + history sheet
+│   │   │   │   ├── UnitConverter.jsx              # Multi-category unit conversion
+│   │   │   │   ├── DateCalculator.jsx             # Date difference and add/subtract calculator
+│   │   │   │   ├── CalendarWidget.jsx             # Date picker for calculator flows
+│   │   │   │   └── GraphingCalculator.jsx         # Function plotting view
+│   │   │   ├── hooks/
+│   │   │   │   └── useCalendarNavigation.js       # Calendar month/year/view state logic
+│   │   │   └── services/
+│   │   │       └── calculatorHistoryService.js    # Calculator history persistence
+│   │   ├── tutor/
+│   │   │   ├── components/
+│   │   │   │   └── AiTutorPage.jsx                # AI tutor (typed math, drawing, image input)
+│   │   │   ├── hooks/
+│   │   │   │   └── useTutorHistory.js             # Tutor history persistence
+│   │   │   └── services/
+│   │   │       └── tutorService.js                # Gemini request/response handling
+│   │   ├── practice/
+│   │   │   ├── components/
+│   │   │   │   └── PracticeMode.jsx               # AI-generated quiz flow + scoring
+│   │   │   ├── hooks/
+│   │   │   │   └── usePracticeOptions.js          # Practice option constants
+│   │   │   └── services/
+│   │   │       └── practiceQuestionsService.js    # Gemini quiz generation logic
+│   │   └── settings/
+│   │       ├── components/
+│   │       │   └── SettingsModal.jsx              # Theme, API key, model selection, PWA install
+│   │       ├── hooks/
+│   │       │   └── useDebouncedValue.js           # Debounced input handling
+│   │       └── services/
+│   │           └── geminiModelsService.js         # Fetch available Gemini models
+│   ├── shared/
+│   │   ├── assets/
+│   │   │   └── logo.svg
+│   │   ├── components/
+│   │   │   └── MathRenderers.jsx                  # KaTeX/math rendering helpers
+│   │   ├── hooks/
+│   │   │   └── useSwipeGesture.js                 # Reusable swipe navigation hook
+│   │   └── utils/
+│   │       ├── constants.js                       # Math keyboard + shared constants
+│   │       └── dateUtils.js                       # Date parsing/formatting helpers
+│   ├── assets/
+│   │   └── logo.png
+│   ├── index.css
+│   └── main.jsx
+├── public/
+│   ├── manifest.json
+│   └── sw.js
+├── .env.example
+├── jsconfig.json                                   # Alias mapping for editor tooling
+├── vite.config.js                                  # Vite config + alias mapping
+├── tailwind.config.js
+├── postcss.config.js
+└── README.md
+```
+
+## Installation & Setup
+
+### Prerequisites
+
+- Node.js 16+
+- npm
+
+### Steps
+
+1. Install dependencies:
+
+```bash
+npm install --legacy-peer-deps
+```
+
+2. Create your local environment file:
+
+```bash
+cp .env.example .env
+```
+
+3. Add your Gemini API key in `.env`:
+
+```env
+VITE_GEMINI_API_KEY=your_api_key_here
+```
+
+4. Start the dev server:
+
+```bash
+npm run dev
+```
+
+App runs at `http://localhost:5173`.
+
+5. Build for production:
+
+```bash
+npm run build
+```
+
+6. Preview production build:
+
+```bash
+npm run preview
+```
+
+## Environment & API Key Behavior
+
+API key resolution priority:
+
+1. User-saved key from Settings (stored in localStorage)
+2. `VITE_GEMINI_API_KEY` from `.env`
+
+Notes:
+
+- Settings does not display the fallback environment key.
+- If user clears their custom key, app falls back to `.env` key.
+
+## Key Features
+
+### Core Experience
+
+- Multi-view app shell with smooth animated transitions.
+- Universal swipe gestures for intuitive back navigation on mobile.
+- Dark/light theme support from Settings.
+
+### Calculator Feature
+
+- Standard and scientific calculator modes.
+- Local expression evaluation with support for trig, log/ln, factorial, powers, constants, and angle unit switching (DEG/RAD).
+- Live result preview while typing.
+- History drawer with expandable mobile sheet behavior.
+- Unit converter (Area, Length, Temperature, Volume, Mass, Data, Speed, Time).
+- Date calculator with:
+  - Date difference mode
+  - Add/subtract years/months/days
+  - Interactive calendar widget
+- Graphing calculator powered by function plotting.
+
+### AI Tutor Feature
+
+- Supports typed math input with structured math keyboard tabs.
+- Supports handwritten/drawing mode on canvas.
+- Supports image upload and camera capture for problem input.
+- Gemini-powered step-by-step solution generation.
+- KaTeX-based rendering for math expressions and explanations.
+- Persistent tutor history with re-openable attempts.
+
+### Practice Mode Feature
+
+- AI-generated quizzes based on topic, difficulty, and question count.
+- Topic presets: Algebra, Calculus, Geometry, Trigonometry, Arithmetic, Statistics.
+- Per-question feedback with explanation.
+- End-of-quiz summary with score/percentage and retry flow.
+
+### Settings & PWA Feature
+
+- Save personal Gemini API key override.
+- Auto-detect available Gemini models from active API key.
+- Select and persist preferred model.
+- Theme toggling.
+- Progressive Web App install prompt integration when available.
+
+## Architecture Highlights
+
+- Feature-first folder structure (`features/*`) for domain ownership.
+- Internal separation into:
+  - `components` for UI
+  - `hooks` for reusable state logic
+  - `services` for IO/API and persistence logic
+- Shared cross-domain layer in `src/shared`.
+- Import aliases for clean paths:
+  - `@app`
+  - `@features`
+  - `@shared`
+  - `@`
+
+## Scripts
+
+- `npm run dev` - start Vite dev server
+- `npm run build` - create production bundle
+- `npm run preview` - preview production build locally
+- `npm run lint` - run ESLint
+- `npm run deploy` - deploy `dist` to GitHub Pages
+
+## Deployment
+
+### GitHub Pages (configured)
+
+```bash
+npm run deploy
+```
+
+The `predeploy` script runs production build automatically.
+
+### Other Platforms
+
+You can deploy the generated `dist/` folder to Vercel, Netlify, Cloudflare Pages, or any static host.
+
+## Architecture Decisions (ADR)
+
+### ADR-001: Feature-Based Modules
+
+- Status: Accepted
+- Decision: Organize code by feature (`calculator`, `tutor`, `practice`, `settings`) with `components`, `hooks`, and `services`.
+- Rationale: Keeps business logic close to UI and reduces cross-feature coupling.
+
+### ADR-002: Shared Core Layer
+
+- Status: Accepted
+- Decision: Keep common assets, hooks, components, and utilities in `src/shared`.
+- Rationale: Enables reuse without blurring feature boundaries.
+
+### ADR-003: Path Alias Strategy
+
+- Status: Accepted
+- Decision: Use aliases (`@app`, `@features`, `@shared`, `@`) in Vite and jsconfig.
+- Rationale: Improves readability and minimizes brittle relative imports.
+
+## Contributing
+
+Contributions are welcome.
+
+1. Fork the repo
+2. Create a feature branch
+3. Commit your changes
+4. Open a pull request
