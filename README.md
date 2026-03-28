@@ -1,9 +1,9 @@
-# Jarvis-Cali React - Multi-File Structure
+# Jarvis-Cali React - Multi-File Structure 🚀
 
 A modern, mobile-friendly math suite built with React, Vite, and Tailwind CSS.
 The project is organized with a feature-first architecture for scalability and clean ownership.
 
-## Project Structure
+## 🗂️ Project Structure
 
 ```text
 jarvis-cali/
@@ -68,14 +68,14 @@ jarvis-cali/
 └── README.md
 ```
 
-## Installation & Setup
+## 📦 Installation & Setup
 
-### Prerequisites
+### ✅ Prerequisites
 
 - Node.js 16+
 - npm
 
-### Steps
+### 🛠️ Steps
 
 1. Install dependencies:
 
@@ -115,7 +115,7 @@ npm run build
 npm run preview
 ```
 
-## Environment & API Key Behavior
+## 🔐 Environment & API Key Behavior
 
 API key resolution priority:
 
@@ -124,18 +124,18 @@ API key resolution priority:
 
 Notes:
 
-- Settings does not display the fallback environment key.
-- If user clears their custom key, app falls back to `.env` key.
+- 🔒 Settings does not display the fallback environment key.
+- 🔁 If user clears their custom key, app falls back to `.env` key.
 
-## Key Features
+## ✨ Key Features
 
-### Core Experience
+### 🎯 Core Experience
 
 - Multi-view app shell with smooth animated transitions.
 - Universal swipe gestures for intuitive back navigation on mobile.
 - Dark/light theme support from Settings.
 
-### Calculator Feature
+### 🧮 Calculator Feature
 
 - Standard and scientific calculator modes.
 - Local expression evaluation with support for trig, log/ln, factorial, powers, constants, and angle unit switching (DEG/RAD).
@@ -148,7 +148,7 @@ Notes:
   - Interactive calendar widget
 - Graphing calculator powered by function plotting.
 
-### AI Tutor Feature
+### 🤖 AI Tutor Feature
 
 - Supports typed math input with structured math keyboard tabs.
 - Supports handwritten/drawing mode on canvas.
@@ -157,14 +157,14 @@ Notes:
 - KaTeX-based rendering for math expressions and explanations.
 - Persistent tutor history with re-openable attempts.
 
-### Practice Mode Feature
+### 🧠 Practice Mode Feature
 
 - AI-generated quizzes based on topic, difficulty, and question count.
 - Topic presets: Algebra, Calculus, Geometry, Trigonometry, Arithmetic, Statistics.
 - Per-question feedback with explanation.
 - End-of-quiz summary with score/percentage and retry flow.
 
-### Settings & PWA Feature
+### ⚙️ Settings & PWA Feature
 
 - Save personal Gemini API key override.
 - Auto-detect available Gemini models from active API key.
@@ -172,7 +172,7 @@ Notes:
 - Theme toggling.
 - Progressive Web App install prompt integration when available.
 
-## Architecture Highlights
+## 🏗️ Architecture Highlights
 
 - Feature-first folder structure (`features/*`) for domain ownership.
 - Internal separation into:
@@ -186,17 +186,17 @@ Notes:
   - `@shared`
   - `@`
 
-## Scripts
+## 📜 Scripts
 
-- `npm run dev` - start Vite dev server
-- `npm run build` - create production bundle
-- `npm run preview` - preview production build locally
-- `npm run lint` - run ESLint
-- `npm run deploy` - deploy `dist` to GitHub Pages
+- `npm run dev` - start Vite dev server 🚀
+- `npm run build` - create production bundle 🏗️
+- `npm run preview` - preview production build locally 👀
+- `npm run lint` - run ESLint 🧹
+- `npm run deploy` - deploy `dist` to GitHub Pages 🌐
 
-## Deployment
+## 🚢 Deployment
 
-### GitHub Pages (configured)
+### 🐙 GitHub Pages (configured)
 
 ```bash
 npm run deploy
@@ -204,31 +204,31 @@ npm run deploy
 
 The `predeploy` script runs production build automatically.
 
-### Other Platforms
+### ☁️ Other Platforms
 
 You can deploy the generated `dist/` folder to Vercel, Netlify, Cloudflare Pages, or any static host.
 
-## Architecture Decisions (ADR)
+## 📝 Architecture Decisions (ADR)
 
-### ADR-001: Feature-Based Modules
+### ADR-001: Feature-Based Modules 🧩
 
 - Status: Accepted
 - Decision: Organize code by feature (`calculator`, `tutor`, `practice`, `settings`) with `components`, `hooks`, and `services`.
 - Rationale: Keeps business logic close to UI and reduces cross-feature coupling.
 
-### ADR-002: Shared Core Layer
+### ADR-002: Shared Core Layer ♻️
 
 - Status: Accepted
 - Decision: Keep common assets, hooks, components, and utilities in `src/shared`.
 - Rationale: Enables reuse without blurring feature boundaries.
 
-### ADR-003: Path Alias Strategy
+### ADR-003: Path Alias Strategy 🧭
 
 - Status: Accepted
 - Decision: Use aliases (`@app`, `@features`, `@shared`, `@`) in Vite and jsconfig.
 - Rationale: Improves readability and minimizes brittle relative imports.
 
-## Contributing
+## 🤝 Contributing
 
 Contributions are welcome.
 
