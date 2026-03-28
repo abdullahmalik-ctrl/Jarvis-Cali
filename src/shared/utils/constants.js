@@ -1,7 +1,7 @@
 export const MODEL_NAME = "gemini-1.5-flash";
 
 export const withDelete = (arr) => {
-    return [...arr, { label: '⌫', type: 'action', action: 'delete', category: 'warning' }];
+    return arr;
 };
 
 export const MATHTYPE_DATA = {
@@ -60,7 +60,6 @@ export const MATHTYPE_DATA = {
         { latex: '\\therefore', value: '∴', category: 'operator' }, { latex: '\\because', value: '∵', category: 'operator' }, { latex: '\\neg', value: '¬', category: 'operator' }, { latex: '\\implies', value: '⇒', category: 'operator' }, { latex: '\\iff', value: '⇔', category: 'operator' }
     ]),
     Matrix: withDelete([
-        { latex: '\\begin{pmatrix}\\Box\\\\\\Box\\end{pmatrix}', value: 'vec2', category: 'function' }, { latex: '\\begin{pmatrix}\\Box&\\Box\\\\\\Box&\\Box\\end{pmatrix}', value: 'mat2', category: 'function' },
         { latex: '\\rightarrow', value: '→', category: 'base' }, { latex: '\\leftarrow', value: '←', category: 'base' }, { latex: '\\uparrow', value: '↑', category: 'base' }, { latex: '\\downarrow', value: '↓', category: 'base' },
         { latex: '\\mathbb{R}', value: 'R_set', category: 'base' }, { latex: '\\mathbb{Z}', value: 'Z_set', category: 'base' }, { latex: '\\mathbb{N}', value: 'N_set', category: 'base' }, { latex: '\\mathbb{Q}', value: 'Q_set', category: 'base' }
     ])

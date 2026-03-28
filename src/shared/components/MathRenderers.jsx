@@ -255,7 +255,7 @@ export const MarkdownRenderer = ({ content, isKatexReady, isDarkMode }) => {
                         return (
                             <div key={index} className={`flex items-start ml-2 group p-2 rounded-lg transition-all duration-300`}>
                                 <div className={`mr-4 mt-2 min-w-[6px] h-[6px] rounded-full transition-colors ${isDarkMode ? 'bg-green-500' : 'bg-green-600'}`}></div>
-                                <div className="flex-1">{renderLineContent(line.replace(/^[\*\-]\s/, ''))}</div>
+                                <div className="flex-1">{renderLineContent(line.replace(/^[*-]\s/, ''))}</div>
                             </div>
                         );
                     }

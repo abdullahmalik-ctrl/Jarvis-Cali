@@ -1,12 +1,12 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import functionPlot from 'function-plot';
-import { ChevronLeft, Plus, Trash2, Github, Minimize2, Maximize2 } from 'lucide-react';
+import { ChevronLeft, Plus, Trash2 } from 'lucide-react';
 import useSwipeGesture from '@shared/hooks/useSwipeGesture';
 
 const GraphingCalculator = ({ onClose, isDarkMode }) => {
     const plotRef = useRef(null);
     const [functions, setFunctions] = useState([{ id: 1, fn: 'x^2' }]);
-    const [domains, setDomains] = useState({ x: [-10, 10], y: [-10, 10] });
+    const domains = useMemo(() => ({ x: [-10, 10], y: [-10, 10] }), []);
 
     // Swipe right or left to close (Universal Back)
     const { ref: swipeRef } = useSwipeGesture({

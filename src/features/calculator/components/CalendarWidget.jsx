@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { parseDDMMYYYY, formatDDMMYYYY } from '@shared/utils/dateUtils';
 import useCalendarNavigation from '@features/calculator/hooks/useCalendarNavigation';
 
-const CalendarWidget = ({ value, onChange, onClose, isDarkMode }) => {
+const CalendarWidget = ({ value, onChange, isDarkMode }) => {
     const {
         currentMonth,
         setCurrentMonth,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { X, Moon, Sun, Key, HelpCircle, ExternalLink, Check, Download } from 'lucide-react';
 import { motion } from 'framer-motion';
 import useDebouncedValue from '@features/settings/hooks/useDebouncedValue';
@@ -13,6 +13,31 @@ const SettingsModal = ({ isOpen, onClose, isDarkMode, toggleTheme, userApiKey, o
     const [fetchError, setFetchError] = useState(null);
     const [selectedModel, setSelectedModel] = useState(modelName);
     const debouncedKeyInput = useDebouncedValue(keyInput, 350);
+
+    const fetchModels = useCallback(async (key, currentModel = selectedModel) => {
+        setIsLoadingModels(true);
+        setFetchError(null);
+        try {
+            const models = await fetchAvailableGeminiModels(key);
+
+            setAvailableModels(models);
+
+            // Auto-select if current selection is invalid
+            if (models.length > 0 && !models.includes(currentModel)) {
+                // Prefer 'gemini-1.5-flash' or 'pro' if available
+                const best = models.find(m => m.includes('gemini-1.5-flash')) ||
+                    models.find(m => m.includes('gemini-1.5-pro')) ||
+                    models[0];
+                setSelectedModel(best);
+            }
+        } catch (err) {
+            console.error('Failed to fetch models', err);
+            setFetchError('Could not fetch models. Check API Key.');
+            // Fallback to manual entry or keep existing
+        } finally {
+            setIsLoadingModels(false);
+        }
+    }, [selectedModel]);
 
     useEffect(() => {
         const handler = (e) => {
@@ -30,39 +55,13 @@ const SettingsModal = ({ isOpen, onClose, isDarkMode, toggleTheme, userApiKey, o
             setSelectedModel(modelName);
             fetchModels(userApiKey, modelName);
         }
-    }, [isOpen, userApiKey, modelName]);
+    }, [isOpen, userApiKey, modelName, fetchModels]);
 
     useEffect(() => {
         if (!isOpen) return;
 
         fetchModels(debouncedKeyInput.trim(), selectedModel);
-    }, [debouncedKeyInput, isOpen]);
-
-    const fetchModels = async (key, currentModel = selectedModel) => {
-        if (!key) return;
-        setIsLoadingModels(true);
-        setFetchError(null);
-        try {
-            const models = await fetchAvailableGeminiModels(key);
-
-            setAvailableModels(models);
-
-            // Auto-select if current selection is invalid
-            if (models.length > 0 && !models.includes(currentModel)) {
-                // Prefer 'gemini-1.5-flash' or 'pro' if available
-                const best = models.find(m => m.includes('gemini-1.5-flash')) ||
-                    models.find(m => m.includes('gemini-1.5-pro')) ||
-                    models[0];
-                setSelectedModel(best);
-            }
-        } catch (err) {
-            console.error("Failed to fetch models", err);
-            setFetchError("Could not fetch models. Check API Key.");
-            // Fallback to manual entry or keep existing
-        } finally {
-            setIsLoadingModels(false);
-        }
-    };
+    }, [debouncedKeyInput, isOpen, selectedModel, fetchModels]);
 
     const handleInstall = async () => {
         if (!deferredPrompt) return;
@@ -185,7 +184,7 @@ const SettingsModal = ({ isOpen, onClose, isDarkMode, toggleTheme, userApiKey, o
                                 <ol className="list-decimal list-inside opacity-80 space-y-1">
                                     <li>Go to Google AI Studio.</li>
                                     <li>Log in with your Google account.</li>
-                                    <li>Click "Get API key" and create one.</li>
+                                    <li>Click &quot;Get API key&quot; and create one.</li>
                                 </ol>
                                 <a
                                     href="https://aistudio.google.com/app/apikey"

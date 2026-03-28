@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronLeft, Sparkles, Sun, Moon, History, Ruler, CalendarClock, Delete, FlaskConical, Settings, LineChart, Brain, Trash2, X } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { History, Ruler, CalendarClock, Delete, FlaskConical, Settings, LineChart, Brain, Trash2, X } from 'lucide-react';
 import logo from '@shared/assets/logo.svg';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { loadCalculatorHistory, saveCalculatorHistory } from '@features/calculator/services/calculatorHistoryService';
@@ -8,7 +8,6 @@ import UnitConverter from './UnitConverter';
 import DateCalculator from './DateCalculator';
 import GraphingCalculator from './GraphingCalculator';
 import { useKatex, MathLabel } from '@shared/components/MathRenderers';
-import useSwipeGesture from '@shared/hooks/useSwipeGesture';
 
 
 // --- COMPONENT: Simple Calculator Page (Separate Page) ---
@@ -37,15 +36,8 @@ const SimpleCalculatorPage = ({ onSwitchToTutor, onSwitchToPractice, isDarkMode,
         saveCalculatorHistory(history);
     }, [history]);
 
-    // Swipe gestures for sub-views to go back to calculator (Universal Back)
-    const { ref: historySwipeRef } = useSwipeGesture({
-        direction: 'horizontal',
-        onSwipe: () => setViewMode('calculator'),
-        enabled: viewMode === 'history',
-    });
-
     // Local helper to calculate without calling main component hooks
-    const calculateResult = (expr) => {
+    const calculateResult = useCallback((expr) => {
         try {
             // Pre-process Factorial: x! -> factorial(x)
             // Regex finds a number (int/float) or closed paren group followed by !
@@ -67,15 +59,6 @@ const SimpleCalculatorPage = ({ onSwitchToTutor, onSwitchToPractice, isDarkMode,
                 .replace(/π/g, 'Math.PI')
                 .replace(/e/g, 'Math.E')
                 .replace(/√\(/g, 'Math.sqrt(');
-
-            // Trigonometry Handling (DEG vs RAD)
-            const toRad = (angle) => angleUnit === 'DEG' ? `(${angle} * Math.PI / 180)` : angle;
-            // We need to inject the conversion *inside* the function calls if in DEG mode via Regex replacement logic is hard purely with strings.
-            // A safer way for `sin(x)` -> `Math.sin(x * PI/180)`.
-            // We will define custom helper functions in the eval scope instead of string replacing logic which is fragile.
-
-            // Inverse Trig: `asin(x)` -> result in radians. If DEG, convert to deg.
-            // `toDeg(Math.asin(x))`
 
             // Construct the function scope
             // We'll expose `factorial`, `sin`, `cos`, etc. to the Function scope.
@@ -116,7 +99,6 @@ const SimpleCalculatorPage = ({ onSwitchToTutor, onSwitchToPractice, isDarkMode,
             if (/[+\-*/.]$/.test(safeExpr) || safeExpr.endsWith('(')) return null;
 
             // Execute with scope
-            // eslint-disable-next-line no-new-func
             const res = new Function(`return ${safeExpr}`).call(scope);
 
             if (!isFinite(res) || isNaN(res)) return null;
@@ -124,10 +106,10 @@ const SimpleCalculatorPage = ({ onSwitchToTutor, onSwitchToPractice, isDarkMode,
             // Rounding to avoid float errors (especially with trig like cos(90deg) approx 0)
             const rounded = Math.round(res * 10000000000) / 10000000000;
             return String(rounded);
-        } catch (e) {
+        } catch {
             return null;
         }
-    };
+    }, [angleUnit]);
 
     // Effect to update live result
     useEffect(() => {
@@ -141,7 +123,7 @@ const SimpleCalculatorPage = ({ onSwitchToTutor, onSwitchToPractice, isDarkMode,
         } else {
             setLiveResult('');
         }
-    }, [display, angleUnit]); // Re-calc if angle unit changes
+    }, [display, angleUnit, calculateResult]); // Re-calc if angle unit changes
 
     const handlePress = (key) => {
         if (key === 'clear') {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import SimpleCalculatorPage from '@features/calculator/components/SimpleCalculatorPage';
 import AiTutorPage from '@features/tutor/components/AiTutorPage';
 import SettingsModal from '@features/settings/components/SettingsModal';

@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, PenTool, Calculator, ChevronLeft, ChevronRight, Sparkles, Sun, Moon, Delete, Trash2, Loader2, X, Eraser, Keyboard, Settings, History } from 'lucide-react';
+import { Camera, PenTool, Calculator, ChevronLeft, ChevronRight, Sparkles, Delete, Trash2, Loader2, X, Eraser, Keyboard, Settings, History } from 'lucide-react';
 import logo from '@shared/assets/logo.svg';
 
 import { MATHTYPE_DATA, MODEL_NAME } from '@shared/utils/constants';
 import { useKatex, MathLabel, LiveMathPreview, MarkdownRenderer } from '@shared/components/MathRenderers';
-import { motion, AnimatePresence, useAnimation, useDragControls } from 'framer-motion';
+import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import useSwipeGesture from '@shared/hooks/useSwipeGesture';
 import useTutorHistory from '@features/tutor/hooks/useTutorHistory';
 import { generateTutorResponse } from '@features/tutor/services/tutorService';
@@ -30,7 +30,6 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, modelName, onOpenSettings }) 
     const [isDrawing, setIsDrawing] = useState(false);
     const canvasRef = useRef(null);
     const [ctx, setCtx] = useState(null);
-    const [drawingData, setDrawingData] = useState(null);
 
     // Math Keyboard State
     const [activeMathTab, setActiveMathTab] = useState('123');
@@ -38,7 +37,6 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, modelName, onOpenSettings }) 
     const isKatexReady = useKatex();
 
     // Motion values or refs for draggable sheets
-    const sheetControls = useAnimation();
     const historyDragControls = useDragControls();
     const solutionDragControls = useDragControls();
     const solutionScrollRef = useRef(null);
@@ -94,7 +92,7 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, modelName, onOpenSettings }) 
                 };
             }
         }
-    }, [drawTool, selectedImage]); // Removed isDarkMode dep here, handled below
+    }, [drawTool, selectedImage, isDarkMode]);
 
     // Update Context Styles (Pen/Eraser/Theme)
     useEffect(() => {
@@ -217,6 +215,23 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, modelName, onOpenSettings }) 
         let valToInsert = item.value;
         let offset = 0;
 
+        // Matrix templates are handled explicitly to avoid malformed escaped row separators.
+        if (item.value === 'vec2') {
+            valToInsert = '\\begin{pmatrix}{}\\\\{}\\end{pmatrix}';
+            const firstPair = valToInsert.indexOf('{}');
+            offset = firstPair !== -1 ? firstPair + 1 - valToInsert.length : 0;
+            insertAtCursor(valToInsert, offset);
+            return;
+        }
+
+        if (item.value === 'mat2') {
+            valToInsert = '\\begin{pmatrix}{}&{}\\\\{}&{}\\end{pmatrix}';
+            const firstPair = valToInsert.indexOf('{}');
+            offset = firstPair !== -1 ? firstPair + 1 - valToInsert.length : 0;
+            insertAtCursor(valToInsert, offset);
+            return;
+        }
+
         if (item.latex) {
             // 1. Handle Templates with placeholders (\Box, {x}, {n})
             if (item.latex.includes('\\Box') || item.latex.includes('{x}') || item.latex.includes('{n}')) {
@@ -269,14 +284,13 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, modelName, onOpenSettings }) 
                 .replace(/\\tan\(/g, 'Math.tan(')
                 .replace(/\^/g, '**');
 
-            // eslint-disable-next-line no-new-func
             const res = new Function(`return ${cleanExpr}`)();
             return isFinite(res) ? String(res) : null;
         } catch { return null; }
     };
 
     const callGemini = async () => {
-        if (!inputText.trim() && !drawingData && !selectedImage && !canvasRef.current) return;
+        if (!inputText.trim() && !selectedImage && !canvasRef.current) return;
         setLoading(true);
         setError(null);
         setResult(null);
@@ -383,6 +397,12 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, modelName, onOpenSettings }) 
             if (text.slice(pos - p.length, pos) === p) return p;
         }
 
+        // Treat matrix wrappers as atomic so cursor nav cannot split command names.
+        const matrixWrappers = ['\\begin{pmatrix}', '\\end{pmatrix}', '\\begin{bmatrix}', '\\end{bmatrix}'];
+        for (const token of matrixWrappers) {
+            if (text.slice(pos - token.length, pos) === token) return token;
+        }
+
         // 2. Look back for LaTeX commands and templates
         for (let i = 1; i <= MAX_LOOKBACK; i++) {
             if (pos - i < 0) break;
@@ -400,7 +420,7 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, modelName, onOpenSettings }) 
                 if (/^\\[a-zA-Z]+\{\}?\{?$/.test(candidate)) return candidate;
 
                 // Priority 3: Basic commands (\pi, \sin, etc.)
-                if (/^\\[a-zA-Z]+[\{\(\[]?$/.test(candidate)) {
+                if (/^\\[a-zA-Z]+(?:\{|\(|\[)?$/.test(candidate)) {
                     return candidate;
                 }
             }
@@ -417,6 +437,12 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, modelName, onOpenSettings }) 
             if (remaining.startsWith(p)) return p;
         }
 
+        // Treat matrix wrappers as atomic so cursor nav cannot split command names.
+        const matrixWrappers = ['\\begin{pmatrix}', '\\end{pmatrix}', '\\begin{bmatrix}', '\\end{bmatrix}'];
+        for (const token of matrixWrappers) {
+            if (remaining.startsWith(token)) return token;
+        }
+
         if (text[pos] !== '\\') return null;
 
         // Match complex empty templates forward
@@ -424,7 +450,7 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, modelName, onOpenSettings }) 
         if (templateMatch) return templateMatch[1];
 
         // Basic match
-        const basicMatch = remaining.match(/^(\\[a-zA-Z]+[\{\(\[]?)/);
+        const basicMatch = remaining.match(/^(\\[a-zA-Z]+(?:\{|\(|\[)?)/);
         return basicMatch ? basicMatch[1] : null;
     };
 

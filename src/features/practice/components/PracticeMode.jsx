@@ -309,7 +309,6 @@ const PracticeMode = ({ onBack, apiKey, modelName, isDarkMode }) => {
                         <button
                             onClick={() => {
                                 setGameState('setup');
-                                setDetails({ ...config });
                                 setScore(0);
                                 setCurrentQuestionIndex(0);
                                 setUserAnswers([]);
