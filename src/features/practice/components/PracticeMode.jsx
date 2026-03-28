@@ -8,16 +8,20 @@ import 'katex/dist/katex.min.css';
 import useSwipeGesture from '@shared/hooks/useSwipeGesture';
 import usePracticeOptions from '@features/practice/hooks/usePracticeOptions';
 import { generatePracticeQuestions } from '@features/practice/services/practiceQuestionsService';
+import { getQuestionQualityStats } from '@features/practice/services/questionBankService';
+import { getReviewQueueStats } from '@features/practice/services/qualityReviewService';
+import QuestionReviewBoard from '@features/practice/components/QuestionReviewBoard';
 
 
 const PracticeMode = ({ onBack, apiKey, modelName, isDarkMode }) => {
-    const { TOPICS, DIFFICULTIES } = usePracticeOptions();
+    const { TOPICS, DIFFICULTIES, CURRICULUMS } = usePracticeOptions();
 
     const [gameState, setGameState] = useState('setup'); // setup, loading, playing, summary
     const [config, setConfig] = useState({
         topic: 'Algebra',
         difficulty: 'Medium',
-        count: 5
+        curriculum: 'General',
+        count: 5,
     });
 
     const [questions, setQuestions] = useState([]);
@@ -27,6 +31,9 @@ const PracticeMode = ({ onBack, apiKey, modelName, isDarkMode }) => {
     const [selectedOption, setSelectedOption] = useState(null);
     const [isChecking, setIsChecking] = useState(false);
     const [feedback, setFeedback] = useState(null); // { isCorrect, explanation }
+    const [showReviewBoard, setShowReviewBoard] = useState(false);
+    const [qualityStats, setQualityStats] = useState(() => getQuestionQualityStats());
+    const [reviewStats, setReviewStats] = useState(() => getReviewQueueStats());
 
     // Swipe to go back (Universal Back: Left or Right)
     const { ref: swipeRef } = useSwipeGesture({
@@ -40,6 +47,8 @@ const PracticeMode = ({ onBack, apiKey, modelName, isDarkMode }) => {
         try {
             const parsedQuestions = await generatePracticeQuestions({ apiKey, modelName, config });
             setQuestions(parsedQuestions);
+            setQualityStats(getQuestionQualityStats());
+            setReviewStats(getReviewQueueStats());
             setGameState('playing');
         } catch (error) {
             console.error("Failed to generate questions:", error);
@@ -157,6 +166,48 @@ const PracticeMode = ({ onBack, apiKey, modelName, isDarkMode }) => {
                     </div>
                 </div>
 
+                <div className="mb-6">
+                    <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Curriculum Track</label>
+                    <div className="grid grid-cols-2 gap-2">
+                        {CURRICULUMS.map((curriculum) => (
+                            <motion.button
+                                key={curriculum}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => setConfig({ ...config, curriculum })}
+                                className={`p-2 rounded-xl text-sm font-medium transition-all ${config.curriculum === curriculum
+                                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
+                                    : isDarkMode ? 'bg-[#2a2a2a] hover:bg-[#333]' : 'bg-gray-100 hover:bg-gray-200'
+                                    }`}
+                            >
+                                {curriculum}
+                            </motion.button>
+                        ))}
+                    </div>
+                </div>
+
+                <div className={`mb-4 p-3 rounded-xl ${isDarkMode ? 'bg-neutral-900 border border-neutral-700' : 'bg-gray-50 border border-gray-200'}`}>
+                    <p className="text-sm font-semibold mb-1">Content Quality Layer</p>
+                    <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        Curated approved bank: {qualityStats.approved}/{qualityStats.total} · Pending generated review: {reviewStats.pending}
+                    </p>
+                    <button
+                        type="button"
+                        onClick={() => setShowReviewBoard((current) => !current)}
+                        className={`mt-3 px-3 py-2 rounded-lg text-xs font-medium ${isDarkMode ? 'bg-neutral-800 hover:bg-neutral-700' : 'bg-white hover:bg-gray-100 border border-gray-200'}`}
+                    >
+                        {showReviewBoard ? 'Hide Review Queue' : 'Open Review Queue'}
+                    </button>
+                    {showReviewBoard && (
+                        <QuestionReviewBoard
+                            isDarkMode={isDarkMode}
+                            onReviewCompleted={() => {
+                                setReviewStats(getReviewQueueStats());
+                                setQualityStats(getQuestionQualityStats());
+                            }}
+                        />
+                    )}
+                </div>
+
                 <motion.button
                     whileTap={{ scale: 0.98 }}
                     onClick={generateQuestions}
@@ -197,9 +248,16 @@ const PracticeMode = ({ onBack, apiKey, modelName, isDarkMode }) => {
                             Question {currentQuestionIndex + 1}/{questions.length}
                         </span>
                         <span className={`text-sm font-medium ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>
-                            {config.topic} • {config.difficulty}
+                            {config.topic} • {config.difficulty} • {question.curriculumTag || config.curriculum}
                         </span>
                     </div>
+
+                    <span className={`inline-flex text-xs font-semibold px-2 py-1 rounded-full mb-4 ${question.source === 'curated'
+                        ? isDarkMode ? 'bg-emerald-500/20 text-emerald-300' : 'bg-emerald-100 text-emerald-700'
+                        : isDarkMode ? 'bg-amber-500/20 text-amber-300' : 'bg-amber-100 text-amber-700'
+                        }`}>
+                        {question.source === 'curated' ? 'Curated (approved)' : 'AI generated (review pending)'}
+                    </span>
 
                     <div className="prose dark:prose-invert max-w-none mb-8 text-xl font-medium">
                         <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>

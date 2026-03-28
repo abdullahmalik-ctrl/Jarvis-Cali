@@ -162,6 +162,9 @@ Notes:
 ### 🧠 Practice Mode Feature
 
 - AI-generated quizzes based on topic, difficulty, and question count.
+- Curated question bank with difficulty tags and curriculum mapping (General, Common Core, IGCSE, SAT).
+- Hybrid generation strategy: approved curated items first, then AI fallback for missing coverage.
+- Built-in solution quality review queue for AI-generated questions (approve / needs work workflow).
 - Topic presets: Algebra, Calculus, Geometry, Trigonometry, Arithmetic, Statistics.
 - Per-question feedback with explanation.
 - End-of-quiz summary with score/percentage and retry flow.
@@ -173,6 +176,20 @@ Notes:
 - Select and persist preferred model.
 - Theme toggling.
 - Progressive Web App install prompt integration when available.
+- Offline action queue for tutor/practice requests.
+- Background sync trigger for queued actions when connectivity returns.
+- Conflict-safe queue replay strategy (last-write-wins per conflict key).
+- In-app update toast when a new service worker version is available.
+
+### 🧪 Content Quality Workflow
+
+- `curatedQuestionBank.js` stores approved baseline content with metadata:
+  - `topic`
+  - `difficulty`
+  - `curriculumTag`
+  - `quality.status`
+- `questionBankService.js` handles filtering and review override state.
+- `qualityReviewService.js` tracks generated-question review queue and outcomes.
 
 ## 🏗️ Architecture Highlights
 
@@ -194,9 +211,27 @@ Notes:
 - `npm run dev` - run proxy server + Vite together 🚀
 - `npm run server` - run secure proxy server only 🔐
 - `npm run build` - create production bundle 🏗️
+- `npm run test` - run smoke tests ✅
 - `npm run preview` - preview production build locally 👀
 - `npm run lint` - run ESLint 🧹
 - `npm run deploy` - deploy `dist` to GitHub Pages 🌐
+
+## 🔁 Professional DevOps
+
+GitHub Actions workflows included:
+
+- `.github/workflows/ci.yml`
+  - Runs lint, tests, and production build on push/PR.
+- `.github/workflows/preview-artifact.yml`
+  - Builds PR preview artifact (`dist`) for quick QA download.
+- `.github/workflows/uptime.yml`
+  - Scheduled uptime checks for live web URL and optional API health URL.
+- `.github/workflows/release.yml`
+  - Auto-generates GitHub release notes for `v*` tags.
+
+Optional monitoring:
+
+- Frontend Sentry via `VITE_SENTRY_DSN`.
 
 ## 🚢 Deployment
 

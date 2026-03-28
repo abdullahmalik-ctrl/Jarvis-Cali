@@ -1,0 +1,24 @@
+name: Uptime Checks
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+jobs:
+  uptime:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run Uptime Checks
+        env:
+          UPTIME_WEB_URL: https://abdullahmalik-ctrl.github.io/Jarvis-Cali/
+          UPTIME_API_HEALTH_URL: ${{ secrets.UPTIME_API_HEALTH_URL }}
+        run: node scripts/uptime-check.mjs

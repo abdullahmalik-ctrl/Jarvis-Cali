@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import SimpleCalculatorPage from '@features/calculator/components/SimpleCalculatorPage';
 import AiTutorPage from '@features/tutor/components/AiTutorPage';
 import SettingsModal from '@features/settings/components/SettingsModal';
 import PracticeMode from '@features/practice/components/PracticeMode';
 import useSwipeGesture from '@shared/hooks/useSwipeGesture';
 import { motion, AnimatePresence } from 'framer-motion';
+import useOfflineSync from '@shared/hooks/useOfflineSync';
+import { captureAppError } from '@shared/services/errorMonitoring';
 
 // --- Error Boundary ---
 class ErrorBoundary extends React.Component {
@@ -13,7 +15,10 @@ class ErrorBoundary extends React.Component {
         this.state = { hasError: false, error: null };
     }
     static getDerivedStateFromError(error) { return { hasError: true, error }; }
-    componentDidCatch(error, errorInfo) { console.error("Uncaught error:", error, errorInfo); }
+    componentDidCatch(error, errorInfo) {
+        console.error("Uncaught error:", error, errorInfo);
+        captureAppError(error, { componentStack: errorInfo?.componentStack });
+    }
     render() {
         if (this.state.hasError) {
             return (
@@ -53,6 +58,42 @@ export default function GeminiMathTutor() {
         return localStorage.getItem('gemini_model_name') || 'gemini-1.5-flash';
     });
 
+    const syncProcessors = useMemo(() => ({
+        'generate-tutor': async (payload) => {
+            await fetch('/api/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: payload.contents,
+                    generationConfig: { temperature: 0.2 },
+                    modelName: payload.modelName || payload.fallbackModelName || 'gemini-1.5-flash',
+                    customApiKey: payload.apiKey || undefined,
+                })
+            });
+        },
+        'generate-practice': async (payload) => {
+            const prompt = `Generate ${payload.count} ${payload.config.difficulty} ${payload.config.topic} math questions for ${payload.config.curriculum} curriculum in valid JSON format.`;
+            await fetch('/api/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    modelName: payload.modelName || 'gemini-1.5-flash',
+                    contents: [{ parts: [{ text: prompt }] }],
+                    customApiKey: payload.apiKey || undefined,
+                })
+            });
+        },
+    }), []);
+
+    const {
+        isOnline,
+        pendingCount,
+        isSyncing,
+        updateAvailable,
+        requestBackgroundSync,
+        applyUpdate,
+    } = useOfflineSync(syncProcessors);
+
     const toggleTheme = () => setIsDarkMode(!isDarkMode);
 
     const handleSaveApiKey = (key) => {
@@ -70,6 +111,12 @@ export default function GeminiMathTutor() {
         setModelName(model);
         localStorage.setItem('gemini_model_name', model);
     };
+
+    React.useEffect(() => {
+        if (pendingCount > 0) {
+            requestBackgroundSync();
+        }
+    }, [pendingCount, requestBackgroundSync]);
 
     const pageVariants = {
         initial: (direction) => ({
@@ -181,6 +228,32 @@ export default function GeminiMathTutor() {
                         </motion.div>
                     )}
                 </AnimatePresence>
+
+                {!isOnline && (
+                    <div className="absolute top-3 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-amber-500 text-black text-xs font-semibold shadow-lg">
+                        Offline mode: actions are queued automatically.
+                    </div>
+                )}
+
+                {isOnline && pendingCount > 0 && (
+                    <div className="absolute top-3 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-blue-600 text-white text-xs font-semibold shadow-lg">
+                        {isSyncing ? 'Syncing queued actions...' : `${pendingCount} queued action(s) waiting to sync`}
+                    </div>
+                )}
+
+                {updateAvailable && (
+                    <div className="absolute bottom-4 right-4 z-50 p-4 rounded-2xl bg-white text-black shadow-2xl w-72">
+                        <p className="text-sm font-semibold">New update available</p>
+                        <p className="text-xs text-gray-600 mt-1">Refresh now to use the latest fixes and content.</p>
+                        <button
+                            type="button"
+                            onClick={applyUpdate}
+                            className="mt-3 w-full rounded-lg bg-black text-white py-2 text-sm font-semibold"
+                        >
+                            Update Now
+                        </button>
+                    </div>
+                )}
 
             </div>
         </ErrorBoundary>

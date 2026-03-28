@@ -1,4 +1,4 @@
-const CACHE_NAME = 'jarvis-math-v5';
+const CACHE_NAME = 'jarvis-math-v6';
 const urlsToCache = [
     './',
     './index.html',
@@ -14,6 +14,27 @@ self.addEventListener('install', (event) => {
                 return cache.addAll(urlsToCache);
             })
     );
+});
+
+const notifyClients = async (message) => {
+    const clients = await self.clients.matchAll({ includeUncontrolled: true, type: 'window' });
+    clients.forEach((client) => client.postMessage(message));
+};
+
+self.addEventListener('message', (event) => {
+    if (event.data?.type === 'SKIP_WAITING') {
+        self.skipWaiting();
+    }
+
+    if (event.data?.type === 'REQUEST_SYNC') {
+        event.waitUntil(notifyClients({ type: 'jarvis-sync-now' }));
+    }
+});
+
+self.addEventListener('sync', (event) => {
+    if (event.tag === 'jarvis-sync') {
+        event.waitUntil(notifyClients({ type: 'jarvis-sync-now' }));
+    }
 });
 
 self.addEventListener('fetch', (event) => {
