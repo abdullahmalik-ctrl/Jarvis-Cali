@@ -123,6 +123,7 @@ API key resolution priority:
 
 1. User-saved key from Settings (optional override)
 2. `GEMINI_API_KEY` on backend server (`.env`)
+3. `VITE_PUBLIC_GEMINI_API_KEY` frontend fallback (risky; static hosting only)
 
 Notes:
 
@@ -130,6 +131,15 @@ Notes:
 - 🔁 If user clears their custom key, requests use secure server default key.
 - 🌐 On static hosting without backend (for example GitHub Pages), users must provide their own Gemini key in Settings.
 - 🔀 Gateway behavior: app first tries backend proxy, then falls back to direct Gemini calls when a user key is available.
+
+Risky fallback (not truly safe):
+
+- You can set `VITE_PUBLIC_GEMINI_API_KEY` for static hosts.
+- This key is public and extractable from the client bundle.
+- Apply strict restrictions in Google Cloud:
+  - API restriction: Generative Language API only.
+  - HTTP referrer restriction: your exact domains only (for example `https://abdullahmalik-ctrl.github.io/*`).
+  - Tight quotas and usage alerts.
 
 ## ✨ Key Features
 

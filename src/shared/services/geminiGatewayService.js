@@ -1,4 +1,5 @@
 const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
+const PUBLIC_FRONTEND_FALLBACK_KEY = (import.meta.env.VITE_PUBLIC_GEMINI_API_KEY || '').trim();
 
 const safeJson = async (response) => {
     const text = await response.text();
@@ -37,11 +38,12 @@ const tryProxyGenerate = async ({ modelName, contents, generationConfig, customA
 };
 
 const tryDirectGenerate = async ({ modelName, contents, generationConfig, customApiKey }) => {
-    if (!customApiKey) {
+    const resolvedKey = (customApiKey || PUBLIC_FRONTEND_FALLBACK_KEY).trim();
+    if (!resolvedKey) {
         throw new Error('No user API key found for direct Gemini call.');
     }
 
-    const endpoint = `${GEMINI_BASE_URL}/models/${modelName}:generateContent?key=${encodeURIComponent(customApiKey)}`;
+    const endpoint = `${GEMINI_BASE_URL}/models/${modelName}:generateContent?key=${encodeURIComponent(resolvedKey)}`;
     const payload = generationConfig ? { contents, generationConfig } : { contents };
 
     const response = await fetch(endpoint, {
@@ -62,8 +64,8 @@ export const generateViaGateway = async ({ modelName, contents, generationConfig
     try {
         return await tryProxyGenerate({ modelName, contents, generationConfig, customApiKey });
     } catch (proxyError) {
-        if (!customApiKey) {
-            throw new Error('Backend is unavailable and no user API key is set. Add your Gemini API key in Settings for live static hosting.');
+        if (!customApiKey && !PUBLIC_FRONTEND_FALLBACK_KEY) {
+            throw new Error('Backend is unavailable and no API key is available. Add your key in Settings or configure VITE_PUBLIC_GEMINI_API_KEY.');
         }
 
         try {
@@ -90,11 +92,12 @@ const tryProxyModels = async (customApiKey) => {
 };
 
 const tryDirectModels = async (customApiKey) => {
-    if (!customApiKey) {
+    const resolvedKey = (customApiKey || PUBLIC_FRONTEND_FALLBACK_KEY).trim();
+    if (!resolvedKey) {
         throw new Error('No API key provided for direct model lookup.');
     }
 
-    const endpoint = `${GEMINI_BASE_URL}/models?key=${encodeURIComponent(customApiKey)}`;
+    const endpoint = `${GEMINI_BASE_URL}/models?key=${encodeURIComponent(resolvedKey)}`;
     const response = await fetch(endpoint);
     const data = await safeJson(response);
 
@@ -113,8 +116,8 @@ export const fetchModelsViaGateway = async (customApiKey) => {
     try {
         return await tryProxyModels(customApiKey);
     } catch (_proxyError) {
-        if (!customApiKey) {
-            throw new Error('Model list requires your API key when backend is not running.');
+        if (!customApiKey && !PUBLIC_FRONTEND_FALLBACK_KEY) {
+            throw new Error('Model list requires API key when backend is not running.');
         }
         return tryDirectModels(customApiKey);
     }
