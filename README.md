@@ -123,6 +123,7 @@ API key resolution priority:
 
 1. User-saved key from Settings (optional override)
 2. `GEMINI_API_KEY` on backend server (`.env`)
+3. `VITE_PUBLIC_GEMINI_API_KEY` (risky static fallback)
 
 Notes:
 
@@ -133,8 +134,18 @@ Notes:
 
 Security note:
 
-- No Gemini API key is bundled in frontend code.
-- Direct browser calls only use the key entered by the current user in Settings.
+- In secure mode (`VITE_BACKEND_PROXY_BASE`), no Gemini key is bundled in frontend code.
+- In risky mode (`VITE_PUBLIC_GEMINI_API_KEY`), key is bundled and exposed.
+- Direct browser calls use user key when provided, otherwise public fallback key if configured.
+
+Risky fallback option:
+
+- Set `VITE_PUBLIC_GEMINI_API_KEY` only if you intentionally want a default key on static hosting.
+- This key is exposed in frontend bundle and can be extracted.
+- If you enable it, lock down hard:
+  - API restriction: Generative Language API only.
+  - HTTP referrer allowlist: your exact domains only.
+  - Strict quotas and billing alerts.
 
 ## 🌐 Secure Default Key Without Traditional Server
 

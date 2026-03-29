@@ -1,5 +1,6 @@
 const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
 const BACKEND_PROXY_BASE = (import.meta.env.VITE_BACKEND_PROXY_BASE || '').trim();
+const PUBLIC_FALLBACK_KEY = (import.meta.env.VITE_PUBLIC_GEMINI_API_KEY || '').trim();
 
 const shouldSkipProxy = () => {
     if (typeof window === 'undefined') {
@@ -57,7 +58,7 @@ const tryProxyGenerate = async ({ modelName, contents, generationConfig, customA
 };
 
 const tryDirectGenerate = async ({ modelName, contents, generationConfig, customApiKey }) => {
-    const resolvedKey = (customApiKey || '').trim();
+    const resolvedKey = (customApiKey || PUBLIC_FALLBACK_KEY || '').trim();
     if (!resolvedKey) {
         throw new Error('No user API key found for direct Gemini call.');
     }
@@ -87,8 +88,8 @@ export const generateViaGateway = async ({ modelName, contents, generationConfig
     try {
         return await tryProxyGenerate({ modelName, contents, generationConfig, customApiKey });
     } catch (proxyError) {
-        if (!customApiKey) {
-            throw new Error('No secure default key is reachable. Configure VITE_BACKEND_PROXY_BASE (serverless proxy) or add your key in Settings.');
+        if (!customApiKey && !PUBLIC_FALLBACK_KEY) {
+            throw new Error('No default API key source is reachable. Set VITE_BACKEND_PROXY_BASE, VITE_PUBLIC_GEMINI_API_KEY, or add user key in Settings.');
         }
 
         try {
@@ -115,7 +116,7 @@ const tryProxyModels = async (customApiKey) => {
 };
 
 const tryDirectModels = async (customApiKey) => {
-    const resolvedKey = (customApiKey || '').trim();
+    const resolvedKey = (customApiKey || PUBLIC_FALLBACK_KEY || '').trim();
     if (!resolvedKey) {
         throw new Error('No API key provided for direct model lookup.');
     }
@@ -137,7 +138,7 @@ const tryDirectModels = async (customApiKey) => {
 
 export const fetchModelsViaGateway = async (customApiKey) => {
     if (shouldSkipProxy()) {
-        if (!customApiKey) {
+        if (!customApiKey && !PUBLIC_FALLBACK_KEY) {
             throw new Error('Model list requires API key for static hosting.');
         }
         return tryDirectModels(customApiKey);
@@ -146,8 +147,8 @@ export const fetchModelsViaGateway = async (customApiKey) => {
     try {
         return await tryProxyModels(customApiKey);
     } catch (_proxyError) {
-        if (!customApiKey) {
-            throw new Error('Model list requires a serverless proxy default key or user API key.');
+        if (!customApiKey && !PUBLIC_FALLBACK_KEY) {
+            throw new Error('Model list requires a serverless proxy default key, public fallback key, or user API key.');
         }
         return tryDirectModels(customApiKey);
     }

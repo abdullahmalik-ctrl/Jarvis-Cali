@@ -212,7 +212,7 @@ const SettingsModal = ({ isOpen, onClose, isDarkMode, toggleTheme, userApiKey, o
                         </div>
                         {!userApiKey && (
                             <p className="text-xs text-neutral-500">
-                                If backend is unavailable (for example GitHub Pages), add your own key here.
+                                If public fallback key is configured, app uses it by default. Add your own key here to override.
                             </p>
                         )}
                     </div>
