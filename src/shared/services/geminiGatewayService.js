@@ -1,5 +1,4 @@
 const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
-const PUBLIC_FRONTEND_FALLBACK_KEY = (import.meta.env.VITE_PUBLIC_GEMINI_API_KEY || '').trim();
 const BACKEND_PROXY_BASE = (import.meta.env.VITE_BACKEND_PROXY_BASE || '').trim();
 
 const shouldSkipProxy = () => {
@@ -58,7 +57,7 @@ const tryProxyGenerate = async ({ modelName, contents, generationConfig, customA
 };
 
 const tryDirectGenerate = async ({ modelName, contents, generationConfig, customApiKey }) => {
-    const resolvedKey = (customApiKey || PUBLIC_FRONTEND_FALLBACK_KEY).trim();
+    const resolvedKey = (customApiKey || '').trim();
     if (!resolvedKey) {
         throw new Error('No user API key found for direct Gemini call.');
     }
@@ -88,8 +87,8 @@ export const generateViaGateway = async ({ modelName, contents, generationConfig
     try {
         return await tryProxyGenerate({ modelName, contents, generationConfig, customApiKey });
     } catch (proxyError) {
-        if (!customApiKey && !PUBLIC_FRONTEND_FALLBACK_KEY) {
-            throw new Error('Backend is unavailable and no API key is available. Add your key in Settings or configure VITE_PUBLIC_GEMINI_API_KEY.');
+        if (!customApiKey) {
+            throw new Error('Backend is unavailable and no user API key is set. Add your key in Settings for direct Gemini calls.');
         }
 
         try {
@@ -116,7 +115,7 @@ const tryProxyModels = async (customApiKey) => {
 };
 
 const tryDirectModels = async (customApiKey) => {
-    const resolvedKey = (customApiKey || PUBLIC_FRONTEND_FALLBACK_KEY).trim();
+    const resolvedKey = (customApiKey || '').trim();
     if (!resolvedKey) {
         throw new Error('No API key provided for direct model lookup.');
     }
@@ -138,7 +137,7 @@ const tryDirectModels = async (customApiKey) => {
 
 export const fetchModelsViaGateway = async (customApiKey) => {
     if (shouldSkipProxy()) {
-        if (!customApiKey && !PUBLIC_FRONTEND_FALLBACK_KEY) {
+        if (!customApiKey) {
             throw new Error('Model list requires API key for static hosting.');
         }
         return tryDirectModels(customApiKey);
@@ -147,7 +146,7 @@ export const fetchModelsViaGateway = async (customApiKey) => {
     try {
         return await tryProxyModels(customApiKey);
     } catch (_proxyError) {
-        if (!customApiKey && !PUBLIC_FRONTEND_FALLBACK_KEY) {
+        if (!customApiKey) {
             throw new Error('Model list requires API key when backend is not running.');
         }
         return tryDirectModels(customApiKey);

@@ -344,6 +344,9 @@ const AiTutorPage = ({ onBack, isDarkMode, apiKey, modelName, onOpenSettings }) 
 
         } catch (err) {
             setError(err.message);
+            if (err.message?.toLowerCase().includes('no user api key')) {
+                onOpenSettings?.();
+            }
         } finally {
             setLoading(false);
         }
