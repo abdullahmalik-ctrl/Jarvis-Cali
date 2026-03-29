@@ -7,6 +7,7 @@ import useSwipeGesture from '@shared/hooks/useSwipeGesture';
 import { motion, AnimatePresence } from 'framer-motion';
 import useOfflineSync from '@shared/hooks/useOfflineSync';
 import { captureAppError } from '@shared/services/errorMonitoring';
+import { generateViaGateway } from '@shared/services/geminiGatewayService';
 
 // --- Error Boundary ---
 class ErrorBoundary extends React.Component {
@@ -60,27 +61,19 @@ export default function GeminiMathTutor() {
 
     const syncProcessors = useMemo(() => ({
         'generate-tutor': async (payload) => {
-            await fetch('/api/generate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: payload.contents,
-                    generationConfig: { temperature: 0.2 },
-                    modelName: payload.modelName || payload.fallbackModelName || 'gemini-1.5-flash',
-                    customApiKey: payload.apiKey || undefined,
-                })
+            await generateViaGateway({
+                contents: payload.contents,
+                generationConfig: { temperature: 0.2 },
+                modelName: payload.modelName || payload.fallbackModelName || 'gemini-1.5-flash',
+                customApiKey: payload.apiKey || undefined,
             });
         },
         'generate-practice': async (payload) => {
             const prompt = `Generate ${payload.count} ${payload.config.difficulty} ${payload.config.topic} math questions for ${payload.config.curriculum} curriculum in valid JSON format.`;
-            await fetch('/api/generate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    modelName: payload.modelName || 'gemini-1.5-flash',
-                    contents: [{ parts: [{ text: prompt }] }],
-                    customApiKey: payload.apiKey || undefined,
-                })
+            await generateViaGateway({
+                modelName: payload.modelName || 'gemini-1.5-flash',
+                contents: [{ parts: [{ text: prompt }] }],
+                customApiKey: payload.apiKey || undefined,
             });
         },
     }), []);

@@ -1,0 +1,10 @@
+name = "jarvis-cali-gemini-proxy"
+main = "cloudflare-worker.js"
+compatibility_date = "2026-03-29"
+
+[vars]
+# Optional: comma-separated origins. If omitted, defaults in worker are used.
+# ALLOWED_ORIGINS = "https://abdullahmalik-ctrl.github.io,http://localhost:5173"
+
+# Set the secret once via CLI (recommended):
+# npx wrangler secret put GEMINI_API_KEY

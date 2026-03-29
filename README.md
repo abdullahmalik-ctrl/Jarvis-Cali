@@ -136,6 +136,58 @@ Security note:
 - No Gemini API key is bundled in frontend code.
 - Direct browser calls only use the key entered by the current user in Settings.
 
+## 🌐 Secure Default Key Without Traditional Server
+
+If you want all users to get AI responses on GitHub Pages without entering their own key, while keeping your key secret, use a serverless proxy (Cloudflare Worker).
+
+How it works:
+
+1. User opens app on GitHub Pages.
+2. Frontend sends requests to your Worker URL (`VITE_BACKEND_PROXY_BASE`).
+3. Worker uses secret `GEMINI_API_KEY` (stored in Cloudflare secrets).
+4. If user enters their own key in Settings, that key is used as override.
+
+This gives you:
+
+- ✅ Default key for all users
+- ✅ Optional user key override
+- ✅ No key in frontend bundle
+
+Files included for this flow:
+
+- `edge/cloudflare-worker.js`
+- `edge/wrangler.toml.example`
+
+Quick setup:
+
+1. Install Wrangler and login:
+
+```bash
+npm i -D wrangler
+npx wrangler login
+```
+
+2. Create `edge/wrangler.toml` from example and deploy worker:
+
+```bash
+cp edge/wrangler.toml.example edge/wrangler.toml
+cd edge
+npx wrangler secret put GEMINI_API_KEY
+npx wrangler deploy
+```
+
+3. Set frontend to use Worker URL in `.env`:
+
+```env
+VITE_BACKEND_PROXY_BASE=https://your-worker-name.your-subdomain.workers.dev
+```
+
+4. Rebuild and deploy frontend:
+
+```bash
+npm run deploy
+```
+
 ## ✨ Key Features
 
 ### 🎯 Core Experience

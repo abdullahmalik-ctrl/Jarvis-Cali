@@ -88,7 +88,7 @@ export const generateViaGateway = async ({ modelName, contents, generationConfig
         return await tryProxyGenerate({ modelName, contents, generationConfig, customApiKey });
     } catch (proxyError) {
         if (!customApiKey) {
-            throw new Error('Backend is unavailable and no user API key is set. Add your key in Settings for direct Gemini calls.');
+            throw new Error('No secure default key is reachable. Configure VITE_BACKEND_PROXY_BASE (serverless proxy) or add your key in Settings.');
         }
 
         try {
@@ -147,7 +147,7 @@ export const fetchModelsViaGateway = async (customApiKey) => {
         return await tryProxyModels(customApiKey);
     } catch (_proxyError) {
         if (!customApiKey) {
-            throw new Error('Model list requires API key when backend is not running.');
+            throw new Error('Model list requires a serverless proxy default key or user API key.');
         }
         return tryDirectModels(customApiKey);
     }
