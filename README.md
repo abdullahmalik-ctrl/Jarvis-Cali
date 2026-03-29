@@ -128,6 +128,8 @@ Notes:
 
 - 🔒 The default key stays server-side and is never bundled into frontend code.
 - 🔁 If user clears their custom key, requests use secure server default key.
+- 🌐 On static hosting without backend (for example GitHub Pages), users must provide their own Gemini key in Settings.
+- 🔀 Gateway behavior: app first tries backend proxy, then falls back to direct Gemini calls when a user key is available.
 
 ## ✨ Key Features
 

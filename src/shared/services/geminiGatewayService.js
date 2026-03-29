@@ -1,0 +1,121 @@
+const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
+
+const safeJson = async (response) => {
+    const text = await response.text();
+    try {
+        return JSON.parse(text);
+    } catch (_error) {
+        return { error: text || `HTTP ${response.status}` };
+    }
+};
+
+const extractErrorMessage = (data, fallback) => {
+    if (typeof data?.error === 'string') {
+        return data.error;
+    }
+
+    if (data?.error?.message) {
+        return data.error.message;
+    }
+
+    return fallback;
+};
+
+const tryProxyGenerate = async ({ modelName, contents, generationConfig, customApiKey }) => {
+    const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ modelName, contents, generationConfig, customApiKey }),
+    });
+
+    const data = await safeJson(response);
+    if (!response.ok || data.error) {
+        throw new Error(extractErrorMessage(data, 'Proxy generation failed.'));
+    }
+
+    return data;
+};
+
+const tryDirectGenerate = async ({ modelName, contents, generationConfig, customApiKey }) => {
+    if (!customApiKey) {
+        throw new Error('No user API key found for direct Gemini call.');
+    }
+
+    const endpoint = `${GEMINI_BASE_URL}/models/${modelName}:generateContent?key=${encodeURIComponent(customApiKey)}`;
+    const payload = generationConfig ? { contents, generationConfig } : { contents };
+
+    const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+    });
+
+    const data = await safeJson(response);
+    if (!response.ok || data.error) {
+        throw new Error(extractErrorMessage(data, 'Direct Gemini generation failed.'));
+    }
+
+    return data;
+};
+
+export const generateViaGateway = async ({ modelName, contents, generationConfig, customApiKey }) => {
+    try {
+        return await tryProxyGenerate({ modelName, contents, generationConfig, customApiKey });
+    } catch (proxyError) {
+        if (!customApiKey) {
+            throw new Error('Backend is unavailable and no user API key is set. Add your Gemini API key in Settings for live static hosting.');
+        }
+
+        try {
+            return await tryDirectGenerate({ modelName, contents, generationConfig, customApiKey });
+        } catch (directError) {
+            throw new Error(directError.message || proxyError.message || 'Gemini request failed.');
+        }
+    }
+};
+
+const tryProxyModels = async (customApiKey) => {
+    const response = await fetch('/api/models', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customApiKey: customApiKey || undefined }),
+    });
+
+    const data = await safeJson(response);
+    if (!response.ok || data.error) {
+        throw new Error(extractErrorMessage(data, 'Proxy model lookup failed.'));
+    }
+
+    return data.models || [];
+};
+
+const tryDirectModels = async (customApiKey) => {
+    if (!customApiKey) {
+        throw new Error('No API key provided for direct model lookup.');
+    }
+
+    const endpoint = `${GEMINI_BASE_URL}/models?key=${encodeURIComponent(customApiKey)}`;
+    const response = await fetch(endpoint);
+    const data = await safeJson(response);
+
+    if (!response.ok || data.error) {
+        throw new Error(extractErrorMessage(data, 'Direct model lookup failed.'));
+    }
+
+    const models = data.models?.filter((model) =>
+        model.supportedGenerationMethods?.includes('generateContent')
+    ).map((model) => model.name.replace('models/', '')) || [];
+
+    return models;
+};
+
+export const fetchModelsViaGateway = async (customApiKey) => {
+    try {
+        return await tryProxyModels(customApiKey);
+    } catch (_proxyError) {
+        if (!customApiKey) {
+            throw new Error('Model list requires your API key when backend is not running.');
+        }
+        return tryDirectModels(customApiKey);
+    }
+};

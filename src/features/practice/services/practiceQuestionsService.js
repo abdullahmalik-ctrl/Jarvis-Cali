@@ -1,6 +1,7 @@
 import { getCuratedQuestions } from '@features/practice/services/questionBankService';
 import { queueGeneratedQuestionsForReview } from '@features/practice/services/qualityReviewService';
 import { enqueueAction, OfflineQueuedError } from '@shared/services/offlineQueueService';
+import { generateViaGateway } from '@shared/services/geminiGatewayService';
 
 const parseQuestionsFromModel = (responseData) => {
     let text = responseData.candidates[0].content.parts[0].text;
@@ -31,20 +32,11 @@ const generateWithAi = async ({ apiKey, modelName, config, count }) => {
         throw new OfflineQueuedError('You are offline. Practice generation has been queued for sync.', action.id);
     }
 
-    const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            modelName: modelName || 'gemini-1.5-flash',
-            contents: [{ parts: [{ text: prompt }] }],
-            customApiKey: apiKey || undefined,
-        })
+    const data = await generateViaGateway({
+        modelName: modelName || 'gemini-1.5-flash',
+        contents: [{ parts: [{ text: prompt }] }],
+        customApiKey: apiKey || undefined,
     });
-
-    const data = await response.json();
-    if (!response.ok || data.error) {
-        throw new Error(data.error?.message || data.error || 'Failed to generate practice questions.');
-    }
 
     const aiQuestions = parseQuestionsFromModel(data).map((question, index) => ({
         ...question,

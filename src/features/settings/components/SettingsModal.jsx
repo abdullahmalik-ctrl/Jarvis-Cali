@@ -212,7 +212,7 @@ const SettingsModal = ({ isOpen, onClose, isDarkMode, toggleTheme, userApiKey, o
                         </div>
                         {!userApiKey && (
                             <p className="text-xs text-neutral-500">
-                                Using secure server default key.
+                                If backend is unavailable (for example GitHub Pages), add your own key here.
                             </p>
                         )}
                     </div>

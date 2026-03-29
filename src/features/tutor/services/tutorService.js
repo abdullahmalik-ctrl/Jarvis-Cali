@@ -1,4 +1,5 @@
 import { enqueueAction, OfflineQueuedError } from '@shared/services/offlineQueueService';
+import { generateViaGateway } from '@shared/services/geminiGatewayService';
 
 export const generateTutorResponse = async ({ apiKey, modelName, fallbackModelName, contents }) => {
     const resolvedModel = modelName || fallbackModelName;
@@ -12,21 +13,12 @@ export const generateTutorResponse = async ({ apiKey, modelName, fallbackModelNa
         throw new OfflineQueuedError('You are offline. Tutor request has been queued for sync.', action.id);
     }
 
-    const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            contents,
-            generationConfig: { temperature: 0.2 },
-            modelName: resolvedModel,
-            customApiKey: apiKey || undefined,
-        })
+    const data = await generateViaGateway({
+        contents,
+        generationConfig: { temperature: 0.2 },
+        modelName: resolvedModel,
+        customApiKey: apiKey || undefined,
     });
-
-    const data = await response.json();
-    if (!response.ok || data.error) {
-        throw new Error(data.error?.message || data.error || 'Failed to generate tutor response.');
-    }
 
     const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!aiText) {
