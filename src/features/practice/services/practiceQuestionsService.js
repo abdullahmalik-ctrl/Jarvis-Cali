@@ -4,9 +4,18 @@ import { enqueueAction, OfflineQueuedError } from '@shared/services/offlineQueue
 import { generateViaGateway } from '@shared/services/geminiGatewayService';
 
 const parseQuestionsFromModel = (responseData) => {
-    let text = responseData.candidates[0].content.parts[0].text;
+    let text = responseData?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text || typeof text !== 'string') {
+        throw new Error('AI returned an unexpected response format.');
+    }
+
     text = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    return JSON.parse(text);
+
+    try {
+        return JSON.parse(text);
+    } catch (_error) {
+        throw new Error('AI returned invalid JSON for questions. Please try again.');
+    }
 };
 
 const generateWithAi = async ({ apiKey, modelName, config, count }) => {

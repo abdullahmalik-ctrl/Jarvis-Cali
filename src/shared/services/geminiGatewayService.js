@@ -1,11 +1,31 @@
 const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
 const PUBLIC_FRONTEND_FALLBACK_KEY = (import.meta.env.VITE_PUBLIC_GEMINI_API_KEY || '').trim();
+const BACKEND_PROXY_BASE = (import.meta.env.VITE_BACKEND_PROXY_BASE || '').trim();
+
+const shouldSkipProxy = () => {
+    if (typeof window === 'undefined') {
+        return false;
+    }
+
+    const isGithubPages = window.location.hostname.endsWith('github.io');
+    return isGithubPages && !BACKEND_PROXY_BASE;
+};
+
+const proxyUrl = (path) => {
+    if (!BACKEND_PROXY_BASE) {
+        return path;
+    }
+    return `${BACKEND_PROXY_BASE}${path}`;
+};
 
 const safeJson = async (response) => {
     const text = await response.text();
     try {
         return JSON.parse(text);
     } catch (_error) {
+        if (text?.trim().startsWith('<')) {
+            return { error: 'Received HTML response instead of API JSON. Check API endpoint and key restrictions.' };
+        }
         return { error: text || `HTTP ${response.status}` };
     }
 };
@@ -23,7 +43,7 @@ const extractErrorMessage = (data, fallback) => {
 };
 
 const tryProxyGenerate = async ({ modelName, contents, generationConfig, customApiKey }) => {
-    const response = await fetch('/api/generate', {
+    const response = await fetch(proxyUrl('/api/generate'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ modelName, contents, generationConfig, customApiKey }),
@@ -61,6 +81,10 @@ const tryDirectGenerate = async ({ modelName, contents, generationConfig, custom
 };
 
 export const generateViaGateway = async ({ modelName, contents, generationConfig, customApiKey }) => {
+    if (shouldSkipProxy()) {
+        return tryDirectGenerate({ modelName, contents, generationConfig, customApiKey });
+    }
+
     try {
         return await tryProxyGenerate({ modelName, contents, generationConfig, customApiKey });
     } catch (proxyError) {
@@ -77,7 +101,7 @@ export const generateViaGateway = async ({ modelName, contents, generationConfig
 };
 
 const tryProxyModels = async (customApiKey) => {
-    const response = await fetch('/api/models', {
+    const response = await fetch(proxyUrl('/api/models'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ customApiKey: customApiKey || undefined }),
@@ -113,6 +137,13 @@ const tryDirectModels = async (customApiKey) => {
 };
 
 export const fetchModelsViaGateway = async (customApiKey) => {
+    if (shouldSkipProxy()) {
+        if (!customApiKey && !PUBLIC_FRONTEND_FALLBACK_KEY) {
+            throw new Error('Model list requires API key for static hosting.');
+        }
+        return tryDirectModels(customApiKey);
+    }
+
     try {
         return await tryProxyModels(customApiKey);
     } catch (_proxyError) {
